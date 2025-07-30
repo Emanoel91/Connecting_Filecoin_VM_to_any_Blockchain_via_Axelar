@@ -6,8 +6,8 @@ import plotly.graph_objects as go
 
 # --- Page Config: Tab Title & Icon ---
 st.set_page_config(
-    page_title="Squid: Chain Swaps",
-    page_icon="https://axelarscan.io/logos/accounts/squid.svg",
+    page_title="Connecting Filecoin VM to any Blockchain via Axelar",
+    page_icon="https://pbs.twimg.com/profile_images/1869486848646537216/rs71wCQo_400x400.jpg",
     layout="wide"
 )
 
