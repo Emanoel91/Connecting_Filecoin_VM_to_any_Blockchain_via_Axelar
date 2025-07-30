@@ -11,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🔎Analysis of Paths")
+st.title("🔀Analysis of Paths")
 
 st.info(
     "📊Charts initially display data for a default time range. Select a custom range to view results for your desired period."
