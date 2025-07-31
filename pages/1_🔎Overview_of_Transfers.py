@@ -40,7 +40,7 @@ end_date = st.date_input("End Date", value=pd.to_datetime("2025-07-31"))
 # --- Query Functions ---------------------------------------------------------------------------------------
 # --- Row1, 2: KPIs --------------
 @st.cache_data
-def load_transfer_overview(start_date, end_date, conn):
+def load_transfer_kpis(start_date, end_date):
     query = f"""
         WITH axelar_services AS (
             SELECT 
@@ -53,10 +53,10 @@ def load_transfer_overview(start_date, end_date, conn):
                 id, 
                 'Token Transfers' AS service
             FROM axelar.axelscan.fact_transfers
-            WHERE (data:send:original_source_chain='filecoin' OR data:send:original_destination_chain='filecoin')
+            WHERE (data:send:original_source_chain = 'filecoin' OR data:send:original_destination_chain = 'filecoin')
               AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
-              AND status='executed'
-              AND simplified_status='received'
+              AND status = 'executed'
+              AND simplified_status = 'received'
 
             UNION ALL
 
@@ -70,10 +70,10 @@ def load_transfer_overview(start_date, end_date, conn):
                 id,
                 'GMP' AS service
             FROM axelar.axelscan.fact_gmp
-            WHERE (data:call:chain='filecoin' OR data:call:returnValues:destinationChain='filecoin')
+            WHERE (data:call:chain = 'filecoin' OR data:call:returnValues:destinationChain = 'filecoin')
               AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
-              AND status='executed'
-              AND simplified_status='received'
+              AND status = 'executed'
+              AND simplified_status = 'received'
         )
         SELECT 
             COUNT(DISTINCT source_chain || '➡' || destination_chain) AS "Number of Path",
@@ -87,18 +87,14 @@ def load_transfer_overview(start_date, end_date, conn):
     return pd.read_sql(query, conn)
 
 # --- Load Data ----------------------------------------------------------------------------------------
-overview_df = load_transfer_overview(start_date, end_date)
+transfer_kpis = load_transfer_kpis(start_date, end_date)
 # ------------------------------------------------------------------------------------------------------
-# --- Row 1, 2 -----------
-if not overview_df.empty:
-    volume = int(overview_df["Transfer Volume"].iloc[0])
-    txns = int(overview_df["Transfer Count"].iloc[0])
-    users = int(overview_df["User Count"].iloc[0])
-    fees = float(overview_df["Transfer Fees"].iloc[0])
-    avg_fee = float(overview_df["Avg"].iloc[0])
-    paths = int(overview_df["Number of Path"].iloc[0])
+# --- Row 1: KPI Metrics (Volume, Count, Users) -----------------------------------------------------------------------
+if not transfer_kpis.empty:
+    volume = int(transfer_kpis["Transfer Volume"].iloc[0])
+    txns = int(transfer_kpis["Transfer Count"].iloc[0])
+    users = int(transfer_kpis["User Count"].iloc[0])
 
-    # Row 1
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric(label="💸 Volume of Transfers", value=f"{volume:,.0f} USD")
@@ -106,8 +102,15 @@ if not overview_df.empty:
         st.metric(label="🚀 Number of Transfers", value=f"{txns:,} Txns")
     with col3:
         st.metric(label="👥 Number of Users", value=f"{users:,} Addresses")
+else:
+    st.warning("No transfer data available for the selected period.")
 
-    # Row 2
+# --- Row 2: KPI Metrics (Fees, Avg Fee, Paths) -----------------------------------------------------------------------
+if not transfer_kpis.empty:
+    fees = float(transfer_kpis["Transfer Fees"].iloc[0])
+    avg_fee = float(transfer_kpis["Avg"].iloc[0])
+    paths = int(transfer_kpis["Number of Path"].iloc[0])
+
     col4, col5, col6 = st.columns(3)
     with col4:
         st.metric(label="⛽ Total Transfer Fees", value=f"{fees:,.0f} USD")
@@ -115,5 +118,3 @@ if not overview_df.empty:
         st.metric(label="📊 Average Transfer Fees", value=f"{avg_fee:,.2f} USD")
     with col6:
         st.metric(label="🔀 Number of Paths", value=f"{paths} Paths")
-else:
-    st.warning("No transfer data available for the selected period.")
