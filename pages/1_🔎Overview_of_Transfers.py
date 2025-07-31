@@ -291,7 +291,7 @@ with col4:
             transfer_metrics_df,
             x="Date",
             y="User Count",
-            color=" ",
+            color="Service",
             color_discrete_map={
                 "GMP": "#ff8700",
                 "Token Transfers": "#008afa"
