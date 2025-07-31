@@ -236,6 +236,14 @@ if not transfer_kpis.empty:
         st.metric(label="🔀 Number of Paths", value=f"{paths} Paths")
 
 # --- Row 3: Volume & Transfer Count ----------------------------------------------------------------------------------
+st.markdown(
+    """
+    <div style="background-color:#0090ff; padding:1px; border-radius:10px;">
+        <h2 style="color:#000000; text-align:center;">📊Transfers Over Time</h2>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 col1, col2 = st.columns(2)
 
 with col1:
@@ -369,6 +377,14 @@ with col4:
         st.plotly_chart(fig4, use_container_width=True)
 
 # --- Row 5: Donut - Volume + Clustered Bar - Tx & Users --------------------------------------------------------------
+st.markdown(
+    """
+    <div style="background-color:#0090ff; padding:1px; border-radius:10px;">
+        <h2 style="color:#000000; text-align:center;">💎Transfers By Service</h2>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 col1, col2 = st.columns(2)
 
 with col1:
