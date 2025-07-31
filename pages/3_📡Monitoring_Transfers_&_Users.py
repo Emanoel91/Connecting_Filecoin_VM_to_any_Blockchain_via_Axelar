@@ -417,6 +417,5 @@ st.markdown(
         <div style="flex: 1;">"""
 )
 st.plotly_chart(fig_volume, use_container_width=True)
-st.markdown("</div><div style='flex: 1;'>")
 st.plotly_chart(fig_count, use_container_width=True)
-st.markdown("</div></div>")
+
