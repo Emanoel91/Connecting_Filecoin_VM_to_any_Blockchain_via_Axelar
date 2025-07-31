@@ -578,13 +578,13 @@ with col2:
                 x=directional_df["Direction"],
                 y=directional_df["Transfer Count"],
                 name="Transfer Count",
-                marker_color=[direction_colors[d] for d in directional_df["Direction"]]
+                # -- marker_color=[direction_colors[d] for d in directional_df["Direction"]]
             ),
             go.Bar(
                 x=directional_df["Direction"],
                 y=directional_df["User Count"],
                 name="User Count",
-                marker_color=[direction_colors[d] for d in directional_df["Direction"]]
+                # -- marker_color=[direction_colors[d] for d in directional_df["Direction"]]
             )
         ])
         fig2.update_layout(
