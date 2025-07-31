@@ -279,7 +279,7 @@ with col3:
             title="Total Transfer Fees Over Time",
             barmode="stack",
             height=500,
-            yaxis=dict(title="Fees (USD)"),
+            yaxis=dict(title="$USD"),
             yaxis2=dict(title="Total Fees", overlaying="y", side="right", showgrid=False),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0)
         )
