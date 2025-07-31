@@ -539,6 +539,15 @@ with col4:
         st.warning("No data for average fees.")
 
 # -- Row 7, 8 ---------------------------------------------------------
+st.markdown(
+    """
+    <div style="background-color:#0090ff; padding:1px; border-radius:10px;">
+        <h2 style="color:#000000; text-align:center;">🔁Transfers By Direction</h2>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 # Define color mapping for directions
 direction_colors = {
     "filecoin➡⛓": "#fa0610",
