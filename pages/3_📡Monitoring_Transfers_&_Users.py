@@ -410,3 +410,13 @@ fig_count.update_layout(
     margin=dict(l=70, r=70, t=50, b=50),
 )
 
+# --- Display side by side ---
+st.markdown(
+    """
+    <div style="display: flex; gap: 20px;">
+        <div style="flex: 1;">"""
+)
+st.plotly_chart(fig_volume, use_container_width=True)
+st.markdown("</div><div style='flex: 1;'>")
+st.plotly_chart(fig_count, use_container_width=True)
+st.markdown("</div></div>")
