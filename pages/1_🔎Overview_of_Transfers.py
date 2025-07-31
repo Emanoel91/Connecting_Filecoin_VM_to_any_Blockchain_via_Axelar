@@ -196,9 +196,9 @@ with col1:
                 x=total_volume["Date"],
                 y=total_volume["Transfer Volume"],
                 name="Total Transfer Volume",
-                yaxis="y2",
+                yaxis="y",
                 mode="lines+markers",
-                line=dict(color="#00cc96", width=3, dash="dash")
+                line=dict(color="#000000", width=2)
             )
         )
 
@@ -231,9 +231,9 @@ with col2:
                 x=total_count["Date"],
                 y=total_count["Transfer Count"],
                 name="Total Transfer Count",
-                yaxis="y2",
+                yaxis="y",
                 mode="lines+markers",
-                line=dict(color="#00cc96", width=3, dash="dash")
+                line=dict(color="#000000", width=2)
             )
         )
 
@@ -269,9 +269,9 @@ with col3:
                 x=total_fees["Date"],
                 y=total_fees["Transfer Fees"],
                 name="Total Transfer Fees",
-                yaxis="y2",
+                yaxis="y",
                 mode="lines+markers",
-                line=dict(color="#00cc96", width=3, dash="dash")
+                line=dict(color="#000000", width=2)
             )
         )
 
