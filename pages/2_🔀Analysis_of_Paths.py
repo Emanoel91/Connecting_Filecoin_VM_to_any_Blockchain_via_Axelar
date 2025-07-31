@@ -39,7 +39,7 @@ end_date = st.date_input("End Date", value=pd.to_datetime("2025-07-31"))
 
 # --- Query Functions ---------------------------------------------------------------------------------------
 @st.cache_data
-def load_transfer_paths_stats():
+def load_transfer_paths_stats(start_date,end_date):
     query = """
         WITH axelar_services AS (
             SELECT created_at,
@@ -86,7 +86,7 @@ def load_transfer_paths_stats():
     return pd.read_sql(query, conn)
 
 # --- Load Data ----------------------------------------------------------------------------------------
-transfer_paths_stats = load_transfer_paths_stats()
+transfer_paths_stats = load_transfer_paths_stats(start_date,end_date)
 # ------------------------------------------------------------------------------------------------------
 # --- Display Table with Index Starting from 1 ------------------------------------------------------------------------
 st.dataframe(transfer_paths_stats.reset_index(drop=True).style.format({
