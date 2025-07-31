@@ -206,7 +206,7 @@ with col1:
             title="Volume of Cross-Chain Transfers Over Time",
             barmode="stack",
             height=500,
-            yaxis=dict(title="Transfer Volume (USD)"),
+            yaxis=dict(title="$USD"),
             yaxis2=dict(title="Total Volume", overlaying="y", side="right", showgrid=False),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0)
         )
@@ -241,7 +241,7 @@ with col2:
             title="Number of Cross-Chain Transfers Over Time",
             barmode="stack",
             height=500,
-            yaxis=dict(title="Transfer Count"),
+            yaxis=dict(title="Txns Count"),
             yaxis2=dict(title="Total Transfers", overlaying="y", side="right", showgrid=False),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0)
         )
