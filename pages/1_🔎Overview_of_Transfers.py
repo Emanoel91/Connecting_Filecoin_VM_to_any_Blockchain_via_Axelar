@@ -302,6 +302,6 @@ with col4:
             height=500,
             barmode="stack",
             yaxis_title="User Count",
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0)
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0) 
         )
         st.plotly_chart(fig4, use_container_width=True)
