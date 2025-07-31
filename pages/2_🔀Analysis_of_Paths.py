@@ -90,8 +90,9 @@ def load_transfer_paths_table(start_date, end_date):
     return pd.read_sql(query, conn)
 
 # --- Row 2: Top 10 Paths by Volume and Count (Side-by-Side Charts) ----------------------------------
+# --- Row 9: Pie Charts for Source Chain Distribution -------------------------------------------------
 @st.cache_data
-def load_top_paths_by_volume(start_date, end_date):
+def load_source_volume(start_date, end_date):
     query = f"""
         WITH axelar_services AS (
             SELECT created_at,
@@ -105,36 +106,30 @@ def load_top_paths_by_volume(start_date, end_date):
             WHERE (data:send:original_source_chain = 'filecoin' OR data:send:original_destination_chain = 'filecoin')
               AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
               AND status = 'executed' AND simplified_status = 'received'
-
             UNION ALL
-
             SELECT created_at,
                    LOWER(data:call:chain) AS source_chain,
                    LOWER(data:call:returnValues:destinationChain) AS destination_chain,
                    data:call:transaction:from AS user,
                    data:value AS amount,
-                   COALESCE(
-                       (data:gas:gas_used_amount) * (data:gas_price_rate:source_token.token_price.usd),
-                       TRY_CAST(data:fees:express_fee_usd::float AS FLOAT)
-                   ) AS fee,
+                   (data:gas:gas_used_amount)*(data:gas_price_rate:source_token.token_price.usd) AS fee,
                    id
             FROM axelar.axelscan.fact_gmp
             WHERE (data:call:chain = 'filecoin' OR data:call:returnValues:destinationChain = 'filecoin')
               AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
               AND status = 'executed' AND simplified_status = 'received'
         )
-        SELECT source_chain || '➡' || destination_chain AS "Path",
-               ROUND(SUM(amount)) AS "Transfer Volume"
+        SELECT source_chain AS "Source Chain",
+               ROUND(SUM(amount), 2) AS "Transfer Volume"
         FROM axelar_services
-        WHERE source_chain <> 'axelar'
+        WHERE destination_chain = 'filecoin' AND source_chain <> 'filecoin' AND amount IS NOT NULL
         GROUP BY 1
         ORDER BY 2 DESC
-        LIMIT 10
     """
     return pd.read_sql(query, conn)
 
 @st.cache_data
-def load_top_paths_by_count(start_date, end_date):
+def load_source_transfer_count(start_date, end_date):
     query = f"""
         WITH axelar_services AS (
             SELECT created_at,
@@ -148,38 +143,71 @@ def load_top_paths_by_count(start_date, end_date):
             WHERE (data:send:original_source_chain = 'filecoin' OR data:send:original_destination_chain = 'filecoin')
               AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
               AND status = 'executed' AND simplified_status = 'received'
-
             UNION ALL
-
             SELECT created_at,
                    LOWER(data:call:chain) AS source_chain,
                    LOWER(data:call:returnValues:destinationChain) AS destination_chain,
                    data:call:transaction:from AS user,
                    data:value AS amount,
-                   COALESCE(
-                       (data:gas:gas_used_amount) * (data:gas_price_rate:source_token.token_price.usd),
-                       TRY_CAST(data:fees:express_fee_usd::float AS FLOAT)
-                   ) AS fee,
+                   (data:gas:gas_used_amount)*(data:gas_price_rate:source_token.token_price.usd) AS fee,
                    id
             FROM axelar.axelscan.fact_gmp
             WHERE (data:call:chain = 'filecoin' OR data:call:returnValues:destinationChain = 'filecoin')
               AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
               AND status = 'executed' AND simplified_status = 'received'
         )
-        SELECT source_chain || '➡' || destination_chain AS "Path",
+        SELECT source_chain AS "Source Chain",
                COUNT(DISTINCT id) AS "Transfer Count"
         FROM axelar_services
+        WHERE destination_chain = 'filecoin'
         GROUP BY 1
         ORDER BY 2 DESC
-        LIMIT 10
+    """
+    return pd.read_sql(query, conn)
+
+@st.cache_data
+def load_source_user_count(start_date, end_date):
+    query = f"""
+        WITH axelar_services AS (
+            SELECT created_at,
+                   LOWER(data:send:original_source_chain) AS source_chain,
+                   LOWER(data:send:original_destination_chain) AS destination_chain,
+                   sender_address AS user,
+                   data:send:amount * data:link:price AS amount,
+                   data:send:fee_value AS fee,
+                   id
+            FROM axelar.axelscan.fact_transfers
+            WHERE (data:send:original_source_chain = 'filecoin' OR data:send:original_destination_chain = 'filecoin')
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+              AND status = 'executed' AND simplified_status = 'received'
+            UNION ALL
+            SELECT created_at,
+                   LOWER(data:call:chain) AS source_chain,
+                   LOWER(data:call:returnValues:destinationChain) AS destination_chain,
+                   data:call:transaction:from AS user,
+                   data:value AS amount,
+                   (data:gas:gas_used_amount)*(data:gas_price_rate:source_token.token_price.usd) AS fee,
+                   id
+            FROM axelar.axelscan.fact_gmp
+            WHERE (data:call:chain = 'filecoin' OR data:call:returnValues:destinationChain = 'filecoin')
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+              AND status = 'executed' AND simplified_status = 'received'
+        )
+        SELECT source_chain AS "Source Chain",
+               COUNT(DISTINCT user) AS "User Count"
+        FROM axelar_services
+        WHERE destination_chain = 'filecoin'
+        GROUP BY 1
+        ORDER BY 2 DESC
     """
     return pd.read_sql(query, conn)
 
 
 # --- Load Data ----------------------------------------------------------------------------------------
 path_table_df = load_transfer_paths_table(start_date, end_date)
-volume_df = load_top_paths_by_volume(start_date, end_date)
-count_df = load_top_paths_by_count(start_date, end_date)
+volume_pie_df = load_source_volume(start_date, end_date)
+count_pie_df = load_source_transfer_count(start_date, end_date)
+user_pie_df = load_source_user_count(start_date, end_date)
 # ------------------------------------------------------------------------------------------------------
 # --- Row1: Render Table with Index Starting from 1 -----------------------------------
 st.markdown("### 🔎Tracking of the Cross-Chain Paths (Sorted by transfers count)")
@@ -191,43 +219,50 @@ else:
     st.warning("No cross-chain path data available for the selected period.")
 
 # --- Row2 --------------------------------------
-# --- Draw Charts in One Row
-col1, col2 = st.columns(2)
+# --- Display all three pie charts in a single row
+col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown("### 💰 Top Paths By Transfer Volume")
-    if not volume_df.empty:
-        fig_vol = px.bar(
-            volume_df.sort_values("Transfer Volume", ascending=True),
-            x="Transfer Volume",
-            y="path",
-            orientation="h",
-            color="Transfer Volume",
-            color_continuous_scale="blues",
-            labels={"Transfer Volume": "Transfer Volume", "Path": "Path"},
-            text="Transfer Volume"
+    st.markdown("### 💰 Volume of Transfers By Source Chain")
+    if not volume_pie_df.empty:
+        fig_vol_pie = px.pie(
+            volume_pie_df,
+            names="Source Chain",
+            values="Transfer Volume",
+            title="",
+            hole=0.4
         )
-        fig_vol.update_traces(texttemplate='%{text:,.0f}', textposition='outside')
-        fig_vol.update_layout(xaxis_title="Transfer Volume", yaxis_title="")
-        st.plotly_chart(fig_vol, use_container_width=True)
+        fig_vol_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
+        st.plotly_chart(fig_vol_pie, use_container_width=True)
     else:
-        st.warning("No volume data available for the selected period.")
+        st.warning("No volume data available.")
 
 with col2:
-    st.markdown("### 🚀 Top Paths By Transfer Count")
-    if not count_df.empty:
-        fig_cnt = px.bar(
-            count_df.sort_values("Transfer Count", ascending=True),
-            x="Transfer Count",
-            y="Path",
-            orientation="h",
-            color="Transfer Count",
-            color_continuous_scale="greens",
-            labels={"Transfer Count": "Transfer Count", "Path": "Path"},
-            text="Transfer Count"
+    st.markdown("### 🚀 Number of Transfers By Source Chain")
+    if not count_pie_df.empty:
+        fig_cnt_pie = px.pie(
+            count_pie_df,
+            names="Source Chain",
+            values="Transfer Count",
+            title="",
+            hole=0.4
         )
-        fig_cnt.update_traces(texttemplate='%{text:,}', textposition='outside')
-        fig_cnt.update_layout(xaxis_title="Transfer Count", yaxis_title="")
-        st.plotly_chart(fig_cnt, use_container_width=True)
+        fig_cnt_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
+        st.plotly_chart(fig_cnt_pie, use_container_width=True)
     else:
-        st.warning("No count data available for the selected period.")
+        st.warning("No count data available.")
+
+with col3:
+    st.markdown("### 👥 Number of Users By Source Chain")
+    if not user_pie_df.empty:
+        fig_usr_pie = px.pie(
+            user_pie_df,
+            names="Source Chain",
+            values="User Count",
+            title="",
+            hole=0.4
+        )
+        fig_usr_pie.update_layout(legend=dict(orientation="v", x=-0.2, y=0.5))
+        st.plotly_chart(fig_usr_pie, use_container_width=True)
+    else:
+        st.warning("No user data available.")
