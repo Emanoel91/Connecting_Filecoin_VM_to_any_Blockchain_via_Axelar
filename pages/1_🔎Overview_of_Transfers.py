@@ -191,11 +191,65 @@ def load_transfer_summary_by_service(start_date, end_date):
         GROUP BY 1
     """
     return pd.read_sql(query, conn)
+# -- Row 7 ----------------------------------------------------
+@st.cache_data
+def load_directional_transfer_summary(start_date, end_date):
+    query = f"""
+        WITH axelar_services AS (
+            SELECT created_at,
+                   LOWER(data:send:original_source_chain) AS source_chain,
+                   LOWER(data:send:original_destination_chain) AS destination_chain,
+                   sender_address AS user,
+                   data:send:amount * data:link:price AS amount,
+                   data:send:fee_value AS fee,
+                   id,
+                   'Token Transfers' AS service
+            FROM axelar.axelscan.fact_transfers
+            WHERE (data:send:original_source_chain = 'filecoin' OR data:send:original_destination_chain = 'filecoin')
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+              AND status = 'executed'
+              AND simplified_status = 'received'
+
+            UNION ALL
+
+            SELECT created_at,
+                   TO_VARCHAR(LOWER(data:call:chain)) AS source_chain,
+                   TO_VARCHAR(LOWER(data:call:returnValues:destinationChain)) AS destination_chain,
+                   TO_VARCHAR(data:call:transaction:from) AS user,
+                   data:value AS amount,
+                   COALESCE(
+                     ((data:gas:gas_used_amount) * (data:gas_price_rate:source_token.token_price.usd)),
+                     TRY_CAST(data:fees:express_fee_usd::FLOAT AS FLOAT)
+                   ) AS fee,
+                   TO_VARCHAR(id) AS id,
+                   'GMP' AS service
+            FROM axelar.axelscan.fact_gmp
+            WHERE (data:call:chain = 'filecoin' OR data:call:returnValues:destinationChain = 'filecoin')
+              AND status = 'executed'
+              AND simplified_status = 'received'
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+        )
+
+        SELECT
+            CASE
+                WHEN source_chain = 'filecoin' THEN 'filecoin➡⛓'
+                WHEN destination_chain = 'filecoin' THEN '⛓➡filecoin'
+            END AS "Direction",
+            COUNT(DISTINCT user) AS "User Count",
+            COUNT(DISTINCT id) AS "Transfer Count",
+            ROUND(SUM(amount)) AS "Transfer Volume",
+            ROUND(SUM(fee), 1) AS "Transfer Fees",
+            ROUND(AVG(fee), 2) AS "Avg"
+        FROM axelar_services
+        GROUP BY 1
+    """
+    return pd.read_sql(query, conn)
 
 # --- Load Data ----------------------------------------------------------------------------------------
 transfer_kpis = load_transfer_kpis(start_date, end_date)
 transfer_metrics_df = load_transfer_metrics_over_time(start_date, end_date, timeframe)
 transfer_summary_df = load_transfer_summary_by_service(start_date, end_date)
+directional_df = load_directional_transfer_summary(start_date, end_date)
 # ------------------------------------------------------------------------------------------------------
 # --- Row 1: KPI Metrics (Volume, Count, Users) -----------------------------------------------------------------------
 st.markdown(
@@ -483,3 +537,110 @@ with col4:
         st.plotly_chart(fig4, use_container_width=True)
     else:
         st.warning("No data for average fees.")
+
+# -- Row 7, 8 ---------------------------------------------------------
+# Define color mapping for directions
+direction_colors = {
+    "filecoin➡⛓": "#fa0610",
+    "⛓➡filecoin": "#0090ff"
+}
+
+# --- Row 1: Donut - Volume + Bar Clustered (Transfers & Users) ------------------------------------------------------
+col1, col2 = st.columns(2)
+
+with col1:
+    if not directional_df.empty:
+        fig1 = go.Figure(
+            data=[
+                go.Pie(
+                    labels=directional_df["Direction"],
+                    values=directional_df["Transfer Volume"],
+                    hole=0.5,
+                    marker=dict(colors=[direction_colors[d] for d in directional_df["Direction"]]),
+                    textinfo="label+percent",
+                    hovertemplate="%{label}<br>%{value} USD"
+                )
+            ]
+        )
+        fig1.update_layout(
+            title="Volume of Transfers By Direction",
+            height=500,
+            legend=dict(orientation="v", x=1.05, y=0.5)
+        )
+        st.plotly_chart(fig1, use_container_width=True)
+    else:
+        st.warning("No data for volume by direction.")
+
+with col2:
+    if not directional_df.empty:
+        fig2 = go.Figure(data=[
+            go.Bar(
+                x=directional_df["Direction"],
+                y=directional_df["Transfer Count"],
+                name="Transfer Count",
+                marker_color=[direction_colors[d] for d in directional_df["Direction"]]
+            ),
+            go.Bar(
+                x=directional_df["Direction"],
+                y=directional_df["User Count"],
+                name="User Count",
+                marker_color=[direction_colors[d] for d in directional_df["Direction"]]
+            )
+        ])
+        fig2.update_layout(
+            barmode="group",
+            title="Number of Transfers & Users By Direction",
+            yaxis_title="Count",
+            height=500,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0)
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+    else:
+        st.warning("No data for transfer/user count by direction.")
+
+# --- Row 2: Donut - Fees + Bar - Avg Fee ---------------------------------------------------------------------------
+col3, col4 = st.columns(2)
+
+with col3:
+    if not directional_df.empty:
+        fig3 = go.Figure(
+            data=[
+                go.Pie(
+                    labels=directional_df["Direction"],
+                    values=directional_df["Transfer Fees"],
+                    hole=0.5,
+                    marker=dict(colors=[direction_colors[d] for d in directional_df["Direction"]]),
+                    textinfo="label+percent",
+                    hovertemplate="%{label}<br>%{value} USD"
+                )
+            ]
+        )
+        fig3.update_layout(
+            title="Total Transfer Fees By Direction",
+            height=500,
+            legend=dict(orientation="v", x=1.05, y=0.5)
+        )
+        st.plotly_chart(fig3, use_container_width=True)
+    else:
+        st.warning("No data for fees by direction.")
+
+with col4:
+    if not directional_df.empty:
+        fig4 = go.Figure(
+            data=[
+                go.Bar(
+                    x=directional_df["Direction"],
+                    y=directional_df["Avg"],
+                    marker_color=[direction_colors[d] for d in directional_df["Direction"]]
+                )
+            ]
+        )
+        fig4.update_layout(
+            title="Average Transfer Fees By Direction",
+            yaxis_title="Average Fee (USD)",
+            height=500,
+            xaxis_title="Direction",
+        )
+        st.plotly_chart(fig4, use_container_width=True)
+    else:
+        st.warning("No data for average fee by direction.")
