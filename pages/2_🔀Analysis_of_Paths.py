@@ -346,7 +346,7 @@ with col1:
             volume_pie_df,
             names="Source Chain",
             values="Transfer Volume",
-            title="Volume of Transfers By Source Chain",
+            title="Volume of Transfers By Source Chain ($USD)",
             hole=0.1
         )
         fig_vol_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
@@ -394,7 +394,7 @@ with col1:
             dest_volume_df,
             names="Destination Chain",
             values="Transfer Volume",
-            title="Volume of Transfers By Destination Chain",
+            title="Volume of Transfers By Destination Chain ($USD)",
             hole=0.4
         )
         fig_vol_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
@@ -427,7 +427,7 @@ with col3:
             title="Number of Users By Destination Chain",
             hole=0.4
         )
-        fig_usr_pie.update_layout(legend=dict(orientation="v", x=-0.2, y=0.5))
+        fig_usr_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
         st.plotly_chart(fig_usr_pie, use_container_width=True)
     else:
         st.warning("No user data available.")
