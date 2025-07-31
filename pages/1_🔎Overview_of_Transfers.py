@@ -393,13 +393,13 @@ with col2:
                 x=transfer_summary_df["Service"],
                 y=transfer_summary_df["Transfer Count"],
                 name="Transfer Count",
-                marker_color=["#008afa" if s == "Token Transfers" else "#ff8700" for s in transfer_summary_df["Service"]],
+                # -- marker_color=["#008afa" if s == "Token Transfers" else "#ff8700" for s in transfer_summary_df["Service"]],
             ),
             go.Bar(
                 x=transfer_summary_df["Service"],
                 y=transfer_summary_df["User Count"],
                 name="User Count",
-                marker_color=["#004d99" if s == "Token Transfers" else "#cc6a00" for s in transfer_summary_df["Service"]],
+                # -- marker_color=["#004d99" if s == "Token Transfers" else "#cc6a00" for s in transfer_summary_df["Service"]],
             )
         ])
         fig2.update_layout(
