@@ -98,7 +98,7 @@ def load_recent_transfers(start_date, end_date):
 # --- Load Data ----------------------------------------------------------------------------------------
 recent_tx_df = load_recent_transfers(start_date, end_date)
 # ------------------------------------------------------------------------------------------------------
-st.markdown("### 🔎Tracking of Cross-Chain Transfers (Last 1000 Transactions in Default Time Range)")
+st.markdown("### 🔎Tracking of Cross-Chain Transfers (Last 1000 Txns in Default Time Range)")
 
 if not recent_tx_df.empty:
     recent_tx_df.index = recent_tx_df.index + 1  # Start index from 1
