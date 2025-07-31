@@ -178,7 +178,7 @@ def load_transfer_summary_by_service(start_date, end_date):
               AND simplified_status = 'received'
               AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
         )
-        SELECT service,
+        SELECT service AS "Service",
                COUNT(DISTINCT source_chain || '➡' || destination_chain) AS "Number of Path",
                COUNT(DISTINCT user) AS "User Count",
                COUNT(DISTINCT id) AS "Transfer Count",
