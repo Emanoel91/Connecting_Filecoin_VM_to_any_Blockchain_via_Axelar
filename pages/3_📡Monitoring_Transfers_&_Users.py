@@ -168,9 +168,151 @@ def load_whale_transfers(start_date, end_date):
     """
     return pd.read_sql(query, conn)
 
+# -- Row 3 ---------------------------------------------------
+@st.cache_data
+def load_top_users_by_volume(start_date, end_date):
+    query = f"""
+    WITH axelar_services AS (
+      SELECT 
+        created_at, 
+        LOWER(data:send:original_source_chain) AS source_chain, 
+        LOWER(data:send:original_destination_chain) AS destination_chain,
+        sender_address AS user, 
+        CASE 
+          WHEN TRY_CAST(TO_VARCHAR(data:send:amount) AS FLOAT) IS NOT NULL 
+               AND TRY_CAST(TO_VARCHAR(data:link:price) AS FLOAT) IS NOT NULL 
+          THEN TRY_CAST(TO_VARCHAR(data:send:amount) AS FLOAT) * TRY_CAST(TO_VARCHAR(data:link:price) AS FLOAT)
+          ELSE NULL
+        END AS amount,
+        TRY_CAST(TO_VARCHAR(data:send:fee_value) AS FLOAT) AS fee, 
+        id, 
+        'Token Transfers' AS service,
+        data:link:asset AS asset
+      FROM axelar.axelscan.fact_transfers
+      WHERE 
+        (data:send:original_source_chain = 'filecoin' OR data:send:original_destination_chain = 'filecoin')
+        AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+        AND status = 'executed'
+        AND simplified_status = 'received'
+
+      UNION ALL
+
+      SELECT 
+        created_at, 
+        TO_VARCHAR(LOWER(data:call:chain)) AS source_chain, 
+        TO_VARCHAR(LOWER(data:call:returnValues:destinationChain)) AS destination_chain,
+        TO_VARCHAR(data:call:transaction:from) AS user, 
+        CASE 
+          WHEN TRY_CAST(TO_VARCHAR(data:value) AS FLOAT) IS NOT NULL 
+          THEN TRY_CAST(TO_VARCHAR(data:value) AS FLOAT)
+          ELSE NULL
+        END AS amount,
+        COALESCE(
+          CASE 
+            WHEN TRY_CAST(TO_VARCHAR(data:gas:gas_used_amount) AS FLOAT) IS NOT NULL 
+                 AND TRY_CAST(TO_VARCHAR(data:gas_price_rate:source_token.token_price.usd) AS FLOAT) IS NOT NULL
+            THEN TRY_CAST(TO_VARCHAR(data:gas:gas_used_amount) AS FLOAT) * TRY_CAST(TO_VARCHAR(data:gas_price_rate:source_token.token_price.usd) AS FLOAT)
+            ELSE NULL
+          END,
+          TRY_CAST(TO_VARCHAR(data:fees:express_fee_usd) AS FLOAT)
+        ) AS fee, 
+        TO_VARCHAR(id) AS id, 
+        'GMP' AS service, 
+        data:approved:returnValues:symbol AS asset
+      FROM axelar.axelscan.fact_gmp
+      WHERE 
+        (data:call:chain = 'filecoin' OR data:call:returnValues:destinationChain = 'filecoin')
+        AND status = 'executed'
+        AND simplified_status = 'received'
+        AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+    )
+    SELECT 
+      user AS "User", 
+      round(sum(amount),1) AS "Volume of Transfers", 
+      count(distinct id) as "Number of Transfers"
+    FROM axelar_services
+    WHERE amount IS NOT NULL
+    GROUP BY 1
+    ORDER BY 2 DESC
+    LIMIT 5
+    """
+    return pd.read_sql(query, conn)
+
+
+@st.cache_data
+def load_top_users_by_count(start_date, end_date):
+    query = f"""
+    WITH axelar_services AS (
+      SELECT 
+        created_at, 
+        LOWER(data:send:original_source_chain) AS source_chain, 
+        LOWER(data:send:original_destination_chain) AS destination_chain,
+        sender_address AS user, 
+        CASE 
+          WHEN TRY_CAST(TO_VARCHAR(data:send:amount) AS FLOAT) IS NOT NULL 
+               AND TRY_CAST(TO_VARCHAR(data:link:price) AS FLOAT) IS NOT NULL 
+          THEN TRY_CAST(TO_VARCHAR(data:send:amount) AS FLOAT) * TRY_CAST(TO_VARCHAR(data:link:price) AS FLOAT)
+          ELSE NULL
+        END AS amount,
+        TRY_CAST(TO_VARCHAR(data:send:fee_value) AS FLOAT) AS fee, 
+        id, 
+        'Token Transfers' AS service,
+        data:link:asset AS asset
+      FROM axelar.axelscan.fact_transfers
+      WHERE 
+        (data:send:original_source_chain = 'filecoin' OR data:send:original_destination_chain = 'filecoin')
+        AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+        AND status = 'executed'
+        AND simplified_status = 'received'
+
+      UNION ALL
+
+      SELECT 
+        created_at, 
+        TO_VARCHAR(LOWER(data:call:chain)) AS source_chain, 
+        TO_VARCHAR(LOWER(data:call:returnValues:destinationChain)) AS destination_chain,
+        TO_VARCHAR(data:call:transaction:from) AS user, 
+        CASE 
+          WHEN TRY_CAST(TO_VARCHAR(data:value) AS FLOAT) IS NOT NULL 
+          THEN TRY_CAST(TO_VARCHAR(data:value) AS FLOAT)
+          ELSE NULL
+        END AS amount,
+        COALESCE(
+          CASE 
+            WHEN TRY_CAST(TO_VARCHAR(data:gas:gas_used_amount) AS FLOAT) IS NOT NULL 
+                 AND TRY_CAST(TO_VARCHAR(data:gas_price_rate:source_token.token_price.usd) AS FLOAT) IS NOT NULL
+            THEN TRY_CAST(TO_VARCHAR(data:gas:gas_used_amount) AS FLOAT) * TRY_CAST(TO_VARCHAR(data:gas_price_rate:source_token.token_price.usd) AS FLOAT)
+            ELSE NULL
+          END,
+          TRY_CAST(TO_VARCHAR(data:fees:express_fee_usd) AS FLOAT)
+        ) AS fee, 
+        TO_VARCHAR(id) AS id, 
+        'GMP' AS service, 
+        data:approved:returnValues:symbol AS asset
+      FROM axelar.axelscan.fact_gmp
+      WHERE 
+        (data:call:chain = 'filecoin' OR data:call:returnValues:destinationChain = 'filecoin')
+        AND status = 'executed'
+        AND simplified_status = 'received'
+        AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+    )
+    SELECT 
+      user AS "User", 
+      round(sum(amount),1) AS "Volume of Transfers", 
+      count(distinct id) as "Number of Transfers"
+    FROM axelar_services
+    WHERE amount IS NOT NULL
+    GROUP BY 1
+    ORDER BY 3 DESC
+    LIMIT 5
+    """
+    return pd.read_sql(query, conn)
+
 # --- Load Data ----------------------------------------------------------------------------------------
 recent_tx_df = load_recent_transfers(start_date, end_date)
 whale_df = load_whale_transfers(start_date, end_date)
+top_users_volume = load_top_users_by_volume(start_date, end_date)
+top_users_count = load_top_users_by_count(start_date, end_date)
 # ------------------------------------------------------------------------------------------------------
 # --- Row1 ---------------------------------------
 st.markdown(
@@ -206,3 +348,75 @@ if not whale_df.empty:
     st.dataframe(whale_df, use_container_width=True, hide_index=False)
 else:
     st.info("No whale transactions found for the selected time period.")
+
+# --- Row 3 ----------------------------------
+fig_volume = go.Figure()
+
+fig_volume.add_trace(go.Bar(
+    y=top_users_volume["User"],
+    x=top_users_volume["Volume of Transfers"],
+    name="Volume of Transfers",
+    orientation='h',
+    marker_color='royalblue',
+    yaxis='y1',
+))
+
+fig_volume.add_trace(go.Bar(
+    y=top_users_volume["User"],
+    x=top_users_volume["Number of Transfers"],
+    name="Number of Transfers",
+    orientation='h',
+    marker_color='orange',
+    yaxis='y2',
+))
+
+fig_volume.update_layout(
+    title="🏆Top Users By Transfer Volume",
+    xaxis=dict(title="Volume of Transfers", showgrid=False),
+    yaxis=dict(title="", autorange='reversed'),
+    yaxis2=dict(title="Number of Transfers", overlaying='y', side='right'),
+    barmode='group',
+    height=400,
+    margin=dict(l=70, r=70, t=50, b=50),
+)
+
+fig_count = go.Figure()
+
+fig_count.add_trace(go.Bar(
+    y=top_users_count["User"],
+    x=top_users_count["Volume of Transfers"],
+    name="Volume of Transfers",
+    orientation='h',
+    marker_color='royalblue',
+    yaxis='y1',
+))
+
+fig_count.add_trace(go.Bar(
+    y=top_users_count["User"],
+    x=top_users_count["Number of Transfers"],
+    name="Number of Transfers",
+    orientation='h',
+    marker_color='orange',
+    yaxis='y2',
+))
+
+fig_count.update_layout(
+    title="🏆Top Users By Transfer Count",
+    xaxis=dict(title="Volume of Transfers", showgrid=False),
+    yaxis=dict(title="", autorange='reversed'),
+    yaxis2=dict(title="Number of Transfers", overlaying='y', side='right'),
+    barmode='group',
+    height=400,
+    margin=dict(l=70, r=70, t=50, b=50),
+)
+
+# --- Display side by side ---
+st.markdown(
+    """
+    <div style="display: flex; gap: 20px;">
+        <div style="flex: 1;">"""
+)
+st.plotly_chart(fig_volume, use_container_width=True)
+st.markdown("</div><div style='flex: 1;'>")
+st.plotly_chart(fig_count, use_container_width=True)
+st.markdown("</div></div>")
