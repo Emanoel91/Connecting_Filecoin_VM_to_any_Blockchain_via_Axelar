@@ -123,7 +123,7 @@ def load_top_paths_by_volume(start_date, end_date):
               AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
               AND status = 'executed' AND simplified_status = 'received'
         )
-        SELECT source_chain || '➡' || destination_chain AS path,
+        SELECT source_chain || '➡' || destination_chain AS "Path",
                ROUND(SUM(amount)) AS "Transfer Volume"
         FROM axelar_services
         WHERE source_chain <> 'axelar'
@@ -166,7 +166,7 @@ def load_top_paths_by_count(start_date, end_date):
               AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
               AND status = 'executed' AND simplified_status = 'received'
         )
-        SELECT source_chain || '➡' || destination_chain AS path,
+        SELECT source_chain || '➡' || destination_chain AS "Path",
                COUNT(DISTINCT id) AS "Transfer Count"
         FROM axelar_services
         GROUP BY 1
@@ -204,7 +204,7 @@ with col1:
             orientation="h",
             color="Transfer Volume",
             color_continuous_scale="blues",
-            labels={"Transfer Volume": "Transfer Volume", "path": "Path"},
+            labels={"Transfer Volume": "Transfer Volume", "Path": "Path"},
             text="Transfer Volume"
         )
         fig_vol.update_traces(texttemplate='%{text:,.0f}', textposition='outside')
@@ -219,11 +219,11 @@ with col2:
         fig_cnt = px.bar(
             count_df.sort_values("Transfer Count", ascending=True),
             x="Transfer Count",
-            y="path",
+            y="Path",
             orientation="h",
             color="Transfer Count",
             color_continuous_scale="greens",
-            labels={"Transfer Count": "Transfer Count", "path": "Path"},
+            labels={"Transfer Count": "Transfer Count", "Path": "Path"},
             text="Transfer Count"
         )
         fig_cnt.update_traces(texttemplate='%{text:,}', textposition='outside')
