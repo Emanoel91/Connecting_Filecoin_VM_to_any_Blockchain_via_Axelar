@@ -368,10 +368,10 @@ with col1:
         fig1 = go.Figure(
             data=[
                 go.Pie(
-                    labels=transfer_summary_df["service"],
+                    labels=transfer_summary_df["Service"],
                     values=transfer_summary_df["Transfer Volume"],
                     hole=0.5,
-                    marker_colors=["#008afa" if s == "Token Transfers" else "#ff8700" for s in transfer_summary_df["service"]],
+                    marker_colors=["#008afa" if s == "Token Transfers" else "#ff8700" for s in transfer_summary_df["Service"]],
                     textinfo="label+percent",
                     hovertemplate="%{label}<br>%{value} USD"
                 )
@@ -390,16 +390,16 @@ with col2:
     if not transfer_summary_df.empty:
         fig2 = go.Figure(data=[
             go.Bar(
-                x=transfer_summary_df["service"],
+                x=transfer_summary_df["Service"],
                 y=transfer_summary_df["Transfer Count"],
                 name="Transfer Count",
-                marker_color=["#008afa" if s == "Token Transfers" else "#ff8700" for s in transfer_summary_df["service"]],
+                marker_color=["#008afa" if s == "Token Transfers" else "#ff8700" for s in transfer_summary_df["Service"]],
             ),
             go.Bar(
-                x=transfer_summary_df["service"],
+                x=transfer_summary_df["Service"],
                 y=transfer_summary_df["User Count"],
                 name="User Count",
-                marker_color=["#004d99" if s == "Token Transfers" else "#cc6a00" for s in transfer_summary_df["service"]],
+                marker_color=["#004d99" if s == "Token Transfers" else "#cc6a00" for s in transfer_summary_df["Service"]],
             )
         ])
         fig2.update_layout(
@@ -421,10 +421,10 @@ with col3:
         fig3 = go.Figure(
             data=[
                 go.Pie(
-                    labels=transfer_summary_df["service"],
+                    labels=transfer_summary_df["Service"],
                     values=transfer_summary_df["Transfer Fees"],
                     hole=0.5,
-                    marker_colors=["#008afa" if s == "Token Transfers" else "#ff8700" for s in transfer_summary_df["service"]],
+                    marker_colors=["#008afa" if s == "Token Transfers" else "#ff8700" for s in transfer_summary_df["Service"]],
                     textinfo="label+percent",
                     hovertemplate="%{label}<br>%{value} USD"
                 )
@@ -444,9 +444,9 @@ with col4:
         fig4 = go.Figure(
             data=[
                 go.Bar(
-                    x=transfer_summary_df["service"],
+                    x=transfer_summary_df["Service"],
                     y=transfer_summary_df["Avg"],
-                    marker_color=["#008afa" if s == "Token Transfers" else "#ff8700" for s in transfer_summary_df["service"]],
+                    marker_color=["#008afa" if s == "Token Transfers" else "#ff8700" for s in transfer_summary_df["Service"]],
                 )
             ]
         )
