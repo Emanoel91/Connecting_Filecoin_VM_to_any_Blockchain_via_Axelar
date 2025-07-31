@@ -95,8 +95,82 @@ def load_recent_transfers(start_date, end_date):
     """
     return pd.read_sql(query, conn)
 
+# --- Row 2: Whale Transfers Table ---------------------------------------------------------------------
+
+@st.cache_data
+def load_whale_transfers(start_date, end_date):
+    query = f"""
+        WITH axelar_services AS (
+            SELECT 
+                created_at, 
+                LOWER(data:send:original_source_chain) AS source_chain, 
+                LOWER(data:send:original_destination_chain) AS destination_chain,
+                sender_address AS user, 
+                CASE 
+                  WHEN TRY_CAST(TO_VARCHAR(data:send:amount) AS FLOAT) IS NOT NULL 
+                       AND TRY_CAST(TO_VARCHAR(data:link:price) AS FLOAT) IS NOT NULL 
+                  THEN TRY_CAST(TO_VARCHAR(data:send:amount) AS FLOAT) * TRY_CAST(TO_VARCHAR(data:link:price) AS FLOAT)
+                  ELSE NULL
+                END AS amount,
+                TRY_CAST(TO_VARCHAR(data:send:fee_value) AS FLOAT) AS fee, 
+                id, 
+                'Token Transfers' AS service,
+                data:link:asset AS asset
+            FROM axelar.axelscan.fact_transfers
+            WHERE 
+                (data:send:original_source_chain = 'filecoin' OR data:send:original_destination_chain = 'filecoin')
+                AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+                AND status = 'executed'
+                AND simplified_status = 'received'
+
+            UNION ALL
+
+            SELECT 
+                created_at, 
+                LOWER(data:call:chain) AS source_chain, 
+                LOWER(data:call:returnValues:destinationChain) AS destination_chain,
+                data:call:transaction:from AS user, 
+                CASE 
+                  WHEN TRY_CAST(TO_VARCHAR(data:value) AS FLOAT) IS NOT NULL 
+                  THEN TRY_CAST(TO_VARCHAR(data:value) AS FLOAT)
+                  ELSE NULL
+                END AS amount,
+                COALESCE(
+                  CASE 
+                    WHEN TRY_CAST(TO_VARCHAR(data:gas:gas_used_amount) AS FLOAT) IS NOT NULL 
+                         AND TRY_CAST(TO_VARCHAR(data:gas_price_rate:source_token.token_price.usd) AS FLOAT) IS NOT NULL
+                    THEN TRY_CAST(TO_VARCHAR(data:gas:gas_used_amount) AS FLOAT) * TRY_CAST(TO_VARCHAR(data:gas_price_rate:source_token.token_price.usd) AS FLOAT)
+                    ELSE NULL
+                  END,
+                  TRY_CAST(TO_VARCHAR(data:fees:express_fee_usd) AS FLOAT)
+                ) AS fee, 
+                TO_VARCHAR(id) AS id, 
+                'GMP' AS service, 
+                data:approved:returnValues:symbol AS asset
+            FROM axelar.axelscan.fact_gmp
+            WHERE 
+                (data:call:chain = 'filecoin' OR data:call:returnValues:destinationChain = 'filecoin')
+                AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+                AND status = 'executed'
+                AND simplified_status = 'received'
+        )
+
+        SELECT 
+          created_at::DATE AS "⏰Date", 
+          user AS "🐳Asset Sender", 
+          source_chain || '➡' || destination_chain AS "🔀Path", 
+          ROUND(amount, 1) AS "💰Amount ($USD)", 
+          ROUND(fee, 3) AS "💸Transfer Fee ($USD)", 
+          id AS "⛓ID"
+        FROM axelar_services
+        WHERE amount IS NOT NULL AND amount > 100000
+        ORDER BY 1 DESC
+    """
+    return pd.read_sql(query, conn)
+
 # --- Load Data ----------------------------------------------------------------------------------------
 recent_tx_df = load_recent_transfers(start_date, end_date)
+whale_df = load_whale_transfers(start_date, end_date)
 # ------------------------------------------------------------------------------------------------------
 # --- Row1 ---------------------------------------
 st.markdown(
@@ -114,3 +188,13 @@ if not recent_tx_df.empty:
     st.dataframe(recent_tx_df, use_container_width=True, hide_index=False)
 else:
     st.warning("No data found for the selected date range.")
+
+# --- Row2 -----------------------------------
+# --- Display Table
+st.markdown("### 🐳Whales Activity")
+
+if not whale_df.empty:
+    whale_df.index = whale_df.index + 1  # Start index from 1
+    st.dataframe(whale_df, use_container_width=True, hide_index=False)
+else:
+    st.info("No whale transactions found for the selected time period.")
