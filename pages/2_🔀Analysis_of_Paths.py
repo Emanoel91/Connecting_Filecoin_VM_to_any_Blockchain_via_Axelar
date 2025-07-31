@@ -89,8 +89,7 @@ def load_transfer_paths_table(start_date, end_date):
     """
     return pd.read_sql(query, conn)
 
-# --- Row 2: Top 10 Paths by Volume and Count (Side-by-Side Charts) ----------------------------------
-# --- Row 9: Pie Charts for Source Chain Distribution -------------------------------------------------
+# --- Row 2: Pie Charts for Source Chain Distribution -------------------------------------------------
 @st.cache_data
 def load_source_volume(start_date, end_date):
     query = f"""
@@ -202,12 +201,130 @@ def load_source_user_count(start_date, end_date):
     """
     return pd.read_sql(query, conn)
 
+# --- Row 3: Pie Charts for Destination Chain Distribution ----------------------------------------------
+
+@st.cache_data
+def load_dest_volume(start_date, end_date):
+    query = f"""
+        WITH axelar_services AS (
+            SELECT created_at,
+                   LOWER(data:send:original_source_chain) AS source_chain,
+                   LOWER(data:send:original_destination_chain) AS destination_chain,
+                   sender_address AS user,
+                   data:send:amount * data:link:price AS amount,
+                   data:send:fee_value AS fee,
+                   id
+            FROM axelar.axelscan.fact_transfers
+            WHERE (data:send:original_source_chain = 'filecoin' OR data:send:original_destination_chain = 'filecoin')
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+              AND status = 'executed' AND simplified_status = 'received'
+            UNION ALL
+            SELECT created_at,
+                   LOWER(data:call:chain) AS source_chain,
+                   LOWER(data:call:returnValues:destinationChain) AS destination_chain,
+                   data:call:transaction:from AS user,
+                   data:value AS amount,
+                   (data:gas:gas_used_amount)*(data:gas_price_rate:source_token.token_price.usd) AS fee,
+                   id
+            FROM axelar.axelscan.fact_gmp
+            WHERE (data:call:chain = 'filecoin' OR data:call:returnValues:destinationChain = 'filecoin')
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+              AND status = 'executed' AND simplified_status = 'received'
+        )
+        SELECT destination_chain AS "Destination Chain",
+               ROUND(SUM(amount), 2) AS "Transfer Volume"
+        FROM axelar_services
+        WHERE source_chain = 'filecoin' AND amount IS NOT NULL
+        GROUP BY 1
+        ORDER BY 2 DESC
+    """
+    return pd.read_sql(query, conn)
+
+
+@st.cache_data
+def load_dest_transfer_count(start_date, end_date):
+    query = f"""
+        WITH axelar_services AS (
+            SELECT created_at,
+                   LOWER(data:send:original_source_chain) AS source_chain,
+                   LOWER(data:send:original_destination_chain) AS destination_chain,
+                   sender_address AS user,
+                   data:send:amount * data:link:price AS amount,
+                   data:send:fee_value AS fee,
+                   id
+            FROM axelar.axelscan.fact_transfers
+            WHERE (data:send:original_source_chain = 'filecoin' OR data:send:original_destination_chain = 'filecoin')
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+              AND status = 'executed' AND simplified_status = 'received'
+            UNION ALL
+            SELECT created_at,
+                   LOWER(data:call:chain) AS source_chain,
+                   LOWER(data:call:returnValues:destinationChain) AS destination_chain,
+                   data:call:transaction:from AS user,
+                   data:value AS amount,
+                   (data:gas:gas_used_amount)*(data:gas_price_rate:source_token.token_price.usd) AS fee,
+                   id
+            FROM axelar.axelscan.fact_gmp
+            WHERE (data:call:chain = 'filecoin' OR data:call:returnValues:destinationChain = 'filecoin')
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+              AND status = 'executed' AND simplified_status = 'received'
+        )
+        SELECT destination_chain AS "Destination Chain",
+               COUNT(DISTINCT id) AS "Transfer Count"
+        FROM axelar_services
+        WHERE source_chain = 'filecoin'
+        GROUP BY 1
+        ORDER BY 2 DESC
+    """
+    return pd.read_sql(query, conn)
+
+
+@st.cache_data
+def load_dest_user_count(start_date, end_date):
+    query = f"""
+        WITH axelar_services AS (
+            SELECT created_at,
+                   LOWER(data:send:original_source_chain) AS source_chain,
+                   LOWER(data:send:original_destination_chain) AS destination_chain,
+                   sender_address AS user,
+                   data:send:amount * data:link:price AS amount,
+                   data:send:fee_value AS fee,
+                   id
+            FROM axelar.axelscan.fact_transfers
+            WHERE (data:send:original_source_chain = 'filecoin' OR data:send:original_destination_chain = 'filecoin')
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+              AND status = 'executed' AND simplified_status = 'received'
+            UNION ALL
+            SELECT created_at,
+                   LOWER(data:call:chain) AS source_chain,
+                   LOWER(data:call:returnValues:destinationChain) AS destination_chain,
+                   data:call:transaction:from AS user,
+                   data:value AS amount,
+                   (data:gas:gas_used_amount)*(data:gas_price_rate:source_token.token_price.usd) AS fee,
+                   id
+            FROM axelar.axelscan.fact_gmp
+            WHERE (data:call:chain = 'filecoin' OR data:call:returnValues:destinationChain = 'filecoin')
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+              AND status = 'executed' AND simplified_status = 'received'
+        )
+        SELECT destination_chain AS "Destination Chain",
+               COUNT(DISTINCT user) AS "User Count"
+        FROM axelar_services
+        WHERE source_chain = 'filecoin'
+        GROUP BY 1
+        ORDER BY 2 DESC
+    """
+    return pd.read_sql(query, conn)
+
 
 # --- Load Data ----------------------------------------------------------------------------------------
 path_table_df = load_transfer_paths_table(start_date, end_date)
 volume_pie_df = load_source_volume(start_date, end_date)
 count_pie_df = load_source_transfer_count(start_date, end_date)
 user_pie_df = load_source_user_count(start_date, end_date)
+dest_volume_df = load_dest_volume(start_date, end_date)
+dest_count_df = load_dest_transfer_count(start_date, end_date)
+dest_user_df = load_dest_user_count(start_date, end_date)
 # ------------------------------------------------------------------------------------------------------
 # --- Row1: Render Table with Index Starting from 1 -----------------------------------
 st.markdown("### 🔎Tracking of the Cross-Chain Paths (Sorted by transfers count)")
@@ -263,6 +380,54 @@ with col3:
             hole=0.1
         )
         fig_usr_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
+        st.plotly_chart(fig_usr_pie, use_container_width=True)
+    else:
+        st.warning("No user data available.")
+
+# --- Row3: Display all three pie charts in a single row
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    
+    if not dest_volume_df.empty:
+        fig_vol_pie = px.pie(
+            dest_volume_df,
+            names="Destination Chain",
+            values="Transfer Volume",
+            title="Volume of Transfers By Destination Chain",
+            hole=0.4
+        )
+        fig_vol_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
+        st.plotly_chart(fig_vol_pie, use_container_width=True)
+    else:
+        st.warning("No volume data available.")
+
+with col2:
+    
+    if not dest_count_df.empty:
+        fig_cnt_pie = px.pie(
+            dest_count_df,
+            names="Destination Chain",
+            values="Transfer Count",
+            title="Number of Transfers By Destination Chain",
+            hole=0.4
+        )
+        fig_cnt_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
+        st.plotly_chart(fig_cnt_pie, use_container_width=True)
+    else:
+        st.warning("No transfer count data available.")
+
+with col3:
+    
+    if not dest_user_df.empty:
+        fig_usr_pie = px.pie(
+            dest_user_df,
+            names="Destination Chain",
+            values="User Count",
+            title="Number of Users By Destination Chain",
+            hole=0.4
+        )
+        fig_usr_pie.update_layout(legend=dict(orientation="v", x=-0.2, y=0.5))
         st.plotly_chart(fig_usr_pie, use_container_width=True)
     else:
         st.warning("No user data available.")
