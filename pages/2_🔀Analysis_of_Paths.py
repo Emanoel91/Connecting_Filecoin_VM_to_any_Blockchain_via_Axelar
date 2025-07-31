@@ -223,13 +223,13 @@ else:
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown("### 💰 Volume of Transfers By Source Chain")
+    
     if not volume_pie_df.empty:
         fig_vol_pie = px.pie(
             volume_pie_df,
             names="Source Chain",
             values="Transfer Volume",
-            title="",
+            title="Volume of Transfers By Source Chain",
             hole=0.4
         )
         fig_vol_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
@@ -238,13 +238,13 @@ with col1:
         st.warning("No volume data available.")
 
 with col2:
-    st.markdown("### 🚀 Number of Transfers By Source Chain")
+    
     if not count_pie_df.empty:
         fig_cnt_pie = px.pie(
             count_pie_df,
             names="Source Chain",
             values="Transfer Count",
-            title="",
+            title="Number of Transfers By Source Chain",
             hole=0.4
         )
         fig_cnt_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
@@ -253,13 +253,13 @@ with col2:
         st.warning("No count data available.")
 
 with col3:
-    st.markdown("### 👥 Number of Users By Source Chain")
+   
     if not user_pie_df.empty:
         fig_usr_pie = px.pie(
             user_pie_df,
             names="Source Chain",
             values="User Count",
-            title="",
+            title="Number of Users By Source Chain",
             hole=0.4
         )
         fig_usr_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
