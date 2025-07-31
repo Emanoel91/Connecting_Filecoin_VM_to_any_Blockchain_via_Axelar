@@ -545,10 +545,9 @@ direction_colors = {
     "⛓➡filecoin": "#0090ff"
 }
 
-# Create 4 columns in a single row
-col1, col2, col3, col4 = st.columns(4)
+# --- Row 1: Donut - Volume + Bar Clustered (Transfers & Users) ------------------------------------------------------
+col1, col2 = st.columns(2)
 
-# --- Column 1: Donut - Volume ---
 with col1:
     if not directional_df.empty:
         fig1 = go.Figure(
@@ -572,33 +571,36 @@ with col1:
     else:
         st.warning("No data for volume by direction.")
 
-# --- Column 2: Bar - Transfers & Users ---
 with col2:
     if not directional_df.empty:
         fig2 = go.Figure(data=[
             go.Bar(
                 x=directional_df["Direction"],
                 y=directional_df["Transfer Count"],
-                name="Transfer Count"
+                name="Transfer Count",
+                marker_color=[direction_colors[d] for d in directional_df["Direction"]]
             ),
             go.Bar(
                 x=directional_df["Direction"],
                 y=directional_df["User Count"],
-                name="User Count"
+                name="User Count",
+                marker_color=[direction_colors[d] for d in directional_df["Direction"]]
             )
         ])
         fig2.update_layout(
             barmode="group",
-            title="Number of Transfers & Users",
+            title="Number of Transfers & Users By Direction",
             yaxis_title="Count",
             height=500,
             legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0)
         )
         st.plotly_chart(fig2, use_container_width=True)
     else:
-        st.warning("No data for transfer/user count.")
+        st.warning("No data for transfer/user count by direction.")
 
-# --- Column 3: Donut - Fees ---
+# --- Row 2: Donut - Fees + Bar - Avg Fee ---------------------------------------------------------------------------
+col3, col4 = st.columns(2)
+
 with col3:
     if not directional_df.empty:
         fig3 = go.Figure(
@@ -614,7 +616,7 @@ with col3:
             ]
         )
         fig3.update_layout(
-            title="Total Transfer Fees",
+            title="Total Transfer Fees By Direction",
             height=500,
             legend=dict(orientation="v", x=1.05, y=0.5)
         )
@@ -622,7 +624,6 @@ with col3:
     else:
         st.warning("No data for fees by direction.")
 
-# --- Column 4: Bar - Avg Fee ---
 with col4:
     if not directional_df.empty:
         fig4 = go.Figure(
@@ -635,8 +636,8 @@ with col4:
             ]
         )
         fig4.update_layout(
-            title="Average Transfer Fees",
-            yaxis_title="Avg Fee (USD)",
+            title="Average Transfer Fees By Direction",
+            yaxis_title="Average Fee (USD)",
             height=500,
             xaxis_title="Direction",
         )
