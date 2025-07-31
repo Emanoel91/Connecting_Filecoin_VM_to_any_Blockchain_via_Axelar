@@ -87,7 +87,7 @@ def load_transfer_overview(start_date, end_date, conn):
     return pd.read_sql(query, conn)
 
 # --- Load Data ----------------------------------------------------------------------------------------
-overview_df = load_transfer_overview(start_date, end_date, conn)
+overview_df = load_transfer_overview(start_date, end_date)
 # ------------------------------------------------------------------------------------------------------
 # --- Row 1, 2 -----------
 if not overview_df.empty:
