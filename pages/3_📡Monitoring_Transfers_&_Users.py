@@ -98,6 +98,15 @@ def load_recent_transfers(start_date, end_date):
 # --- Load Data ----------------------------------------------------------------------------------------
 recent_tx_df = load_recent_transfers(start_date, end_date)
 # ------------------------------------------------------------------------------------------------------
+# --- Row1 ---------------------------------------
+st.markdown(
+    """
+    <div style="background-color:#0090ff; padding:1px; border-radius:10px;">
+        <h2 style="color:#000000; text-align:center;">🖥️Monitoring Transfers</h2>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 st.markdown("### 🔎Tracking of Cross-Chain Transfers (Last 1000 Txns in Default Time Range)")
 
 if not recent_tx_df.empty:
