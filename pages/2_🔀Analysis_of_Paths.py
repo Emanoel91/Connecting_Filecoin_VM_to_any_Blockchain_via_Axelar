@@ -89,9 +89,59 @@ def load_transfer_paths_table(start_date, end_date):
     """
     return pd.read_sql(query, conn)
 
+# --- Row 2 --------------------
+# --- Row 7: Bar Charts for Top Paths ----------------------------------------------------------------
+@st.cache_data
+def load_path_chart_data(start_date, end_date):
+    query = f"""
+        WITH axelar_services AS (
+            SELECT created_at,
+                   LOWER(data:send:original_source_chain) AS source_chain,
+                   LOWER(data:send:original_destination_chain) AS destination_chain,
+                   sender_address AS user,
+                   data:send:amount * data:link:price AS amount,
+                   data:send:fee_value AS fee,
+                   id
+            FROM axelar.axelscan.fact_transfers
+            WHERE (data:send:original_source_chain = 'filecoin' OR data:send:original_destination_chain = 'filecoin')
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+              AND status = 'executed'
+              AND simplified_status = 'received'
+
+            UNION ALL
+
+            SELECT created_at,
+                   LOWER(data:call:chain) AS source_chain,
+                   LOWER(data:call:returnValues:destinationChain) AS destination_chain,
+                   data:call:transaction:from AS user,
+                   data:value AS amount,
+                   COALESCE(
+                       (data:gas:gas_used_amount) * (data:gas_price_rate:source_token.token_price.usd),
+                       TRY_CAST(data:fees:express_fee_usd::float AS FLOAT)
+                   ) AS fee,
+                   id
+            FROM axelar.axelscan.fact_gmp
+            WHERE (data:call:chain = 'filecoin' OR data:call:returnValues:destinationChain = 'filecoin')
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+              AND status = 'executed'
+              AND simplified_status = 'received'
+        )
+        SELECT 
+            source_chain || '➡' || destination_chain AS path,
+            COUNT(DISTINCT user) AS user_count,
+            COUNT(DISTINCT id) AS transfer_count,
+            ROUND(SUM(amount)) AS transfer_volume
+        FROM axelar_services
+        GROUP BY 1
+        ORDER BY transfer_volume DESC
+        LIMIT 15
+    """
+    return pd.read_sql(query, conn)
+
 
 # --- Load Data ----------------------------------------------------------------------------------------
 path_table_df = load_transfer_paths_table(start_date, end_date)
+chart_data = load_path_chart_data(start_date, end_date)
 # ------------------------------------------------------------------------------------------------------
 # --- Row1: Render Table with Index Starting from 1 -----------------------------------
 st.markdown("### 🔎Tracking of the Cross-Chain Paths (Sorted by transfers count)")
@@ -101,3 +151,57 @@ if not path_table_df.empty:
     st.dataframe(path_table_df, use_container_width=True)
 else:
     st.warning("No cross-chain path data available for the selected period.")
+
+# --- Row2 --------------------------------------
+
+if not chart_data.empty:
+    # ----------- Chart 1: Transfer Volume ----------------
+    st.markdown("### 💰 Top Paths by Transfer Volume")
+    fig1 = px.bar(
+        chart_data.sort_values("transfer_volume", ascending=True),
+        x="transfer_volume",
+        y="path",
+        orientation="h",
+        color="transfer_volume",
+        color_continuous_scale="blues",
+        labels={"transfer_volume": "Volume ($USD)", "path": "Path"},
+        text="transfer_volume"
+    )
+    fig1.update_layout(yaxis_title="", xaxis_title="Transfer Volume ($USD)")
+    fig1.update_traces(texttemplate='%{text:,.0f}', textposition='outside')
+    st.plotly_chart(fig1, use_container_width=True)
+
+    # ----------- Chart 2: Transfer Count -----------------
+    st.markdown("### 🚀 Top Paths by Transfer Count")
+    fig2 = px.bar(
+        chart_data.sort_values("transfer_count", ascending=True),
+        x="transfer_count",
+        y="path",
+        orientation="h",
+        color="transfer_count",
+        color_continuous_scale="greens",
+        labels={"transfer_count": "Transfer Count", "path": "Path"},
+        text="transfer_count"
+    )
+    fig2.update_layout(yaxis_title="", xaxis_title="Number of Transfers")
+    fig2.update_traces(texttemplate='%{text:,}', textposition='outside')
+    st.plotly_chart(fig2, use_container_width=True)
+
+    # ----------- Chart 3: User Count ---------------------
+    st.markdown("### 👥 Top Paths by User Count")
+    fig3 = px.bar(
+        chart_data.sort_values("user_count", ascending=True),
+        x="user_count",
+        y="path",
+        orientation="h",
+        color="user_count",
+        color_continuous_scale="purples",
+        labels={"user_count": "User Count", "path": "Path"},
+        text="user_count"
+    )
+    fig3.update_layout(yaxis_title="", xaxis_title="Number of Users")
+    fig3.update_traces(texttemplate='%{text:,}', textposition='outside')
+    st.plotly_chart(fig3, use_container_width=True)
+else:
+    st.warning("No path metrics found for the selected period.")
+
