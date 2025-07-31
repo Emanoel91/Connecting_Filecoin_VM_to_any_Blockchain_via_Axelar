@@ -301,6 +301,7 @@ with col4:
         fig4.update_layout(
             height=500,
             barmode="stack",
+            xaxis_title=" ",
             yaxis_title="User Count",
             legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0) 
         )
