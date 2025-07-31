@@ -347,7 +347,7 @@ with col1:
             names="Source Chain",
             values="Transfer Volume",
             title="Volume of Transfers By Source Chain ($USD)",
-            hole=0.1
+            hole=0.2
         )
         fig_vol_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
         st.plotly_chart(fig_vol_pie, use_container_width=True)
@@ -362,7 +362,7 @@ with col2:
             names="Source Chain",
             values="Transfer Count",
             title="Number of Transfers By Source Chain",
-            hole=0.1
+            hole=0.2
         )
         fig_cnt_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
         st.plotly_chart(fig_cnt_pie, use_container_width=True)
@@ -377,7 +377,7 @@ with col3:
             names="Source Chain",
             values="User Count",
             title="Number of Users By Source Chain",
-            hole=0.1
+            hole=0.2
         )
         fig_usr_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
         st.plotly_chart(fig_usr_pie, use_container_width=True)
@@ -395,7 +395,7 @@ with col1:
             names="Destination Chain",
             values="Transfer Volume",
             title="Volume of Transfers By Destination Chain ($USD)",
-            hole=0.4
+            hole=0.2
         )
         fig_vol_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
         st.plotly_chart(fig_vol_pie, use_container_width=True)
@@ -410,7 +410,7 @@ with col2:
             names="Destination Chain",
             values="Transfer Count",
             title="Number of Transfers By Destination Chain",
-            hole=0.4
+            hole=0.2
         )
         fig_cnt_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
         st.plotly_chart(fig_cnt_pie, use_container_width=True)
@@ -425,7 +425,7 @@ with col3:
             names="Destination Chain",
             values="User Count",
             title="Number of Users By Destination Chain",
-            hole=0.4
+            hole=0.2
         )
         fig_usr_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
         st.plotly_chart(fig_usr_pie, use_container_width=True)
