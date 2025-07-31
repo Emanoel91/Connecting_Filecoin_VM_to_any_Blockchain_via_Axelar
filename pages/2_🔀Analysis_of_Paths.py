@@ -124,7 +124,7 @@ def load_top_paths_by_volume(start_date, end_date):
               AND status = 'executed' AND simplified_status = 'received'
         )
         SELECT source_chain || '➡' || destination_chain AS path,
-               ROUND(SUM(amount)) AS transfer_volume
+               ROUND(SUM(amount)) AS "Transfer Volume"
         FROM axelar_services
         WHERE source_chain <> 'axelar'
         GROUP BY 1
@@ -167,7 +167,7 @@ def load_top_paths_by_count(start_date, end_date):
               AND status = 'executed' AND simplified_status = 'received'
         )
         SELECT source_chain || '➡' || destination_chain AS path,
-               COUNT(DISTINCT id) AS transfer_count
+               COUNT(DISTINCT id) AS "Transfer Count"
         FROM axelar_services
         GROUP BY 1
         ORDER BY 2 DESC
@@ -198,17 +198,17 @@ with col1:
     st.markdown("### 💰 Top Paths By Transfer Volume")
     if not volume_df.empty:
         fig_vol = px.bar(
-            volume_df.sort_values("transfer_volume", ascending=True),
-            x="transfer_volume",
+            volume_df.sort_values("Transfer Volume", ascending=True),
+            x="Transfer Volume",
             y="path",
             orientation="h",
-            color="transfer_volume",
+            color="Transfer Volume",
             color_continuous_scale="blues",
-            labels={"transfer_volume": "Volume ($USD)", "path": "Path"},
-            text="transfer_volume"
+            labels={"Transfer Volume": "$USD", "path": "Path"},
+            text="Transfer Volume"
         )
         fig_vol.update_traces(texttemplate='%{text:,.0f}', textposition='outside')
-        fig_vol.update_layout(xaxis_title="Transfer Volume ($USD)", yaxis_title="")
+        fig_vol.update_layout(xaxis_title="Transfer Volume", yaxis_title="")
         st.plotly_chart(fig_vol, use_container_width=True)
     else:
         st.warning("No volume data available for the selected period.")
@@ -217,14 +217,14 @@ with col2:
     st.markdown("### 🚀 Top Paths By Transfer Count")
     if not count_df.empty:
         fig_cnt = px.bar(
-            count_df.sort_values("transfer_count", ascending=True),
-            x="transfer_count",
+            count_df.sort_values("Transfer Count", ascending=True),
+            x="Transfer Count",
             y="path",
             orientation="h",
-            color="transfer_count",
+            color="Transfer Count",
             color_continuous_scale="greens",
-            labels={"transfer_count": "Transfer Count", "path": "Path"},
-            text="transfer_count"
+            labels={"Transfer Count": "Transfer Count", "path": "Path"},
+            text="Transfer Count"
         )
         fig_cnt.update_traces(texttemplate='%{text:,}', textposition='outside')
         fig_cnt.update_layout(xaxis_title="Transfer Count", yaxis_title="")
