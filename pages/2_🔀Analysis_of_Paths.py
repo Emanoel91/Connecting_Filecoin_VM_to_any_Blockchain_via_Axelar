@@ -39,8 +39,11 @@ end_date = st.date_input("End Date", value=pd.to_datetime("2025-07-31"))
 
 # --- Query Functions ---------------------------------------------------------------------------------------
 @st.cache_data
-def load_transfer_paths_stats(start_date,end_date):
-    query = """
+def load_transfer_paths_stats(start_date, end_date):
+    start_str = start_date.strftime('%Y-%m-%d')
+    end_str = end_date.strftime('%Y-%m-%d')
+    
+    query = f"""
         WITH axelar_services AS (
             SELECT created_at,
                    LOWER(data:send:original_source_chain) AS source_chain,
@@ -52,8 +55,8 @@ def load_transfer_paths_stats(start_date,end_date):
                    'Token Transfers' AS service
             FROM axelar.axelscan.fact_transfers
             WHERE (data:send:original_source_chain='filecoin' OR data:send:original_destination_chain='filecoin')
-              AND created_at::date >= {start_date}
-              AND created_at::date <= {end_date}
+              AND created_at::date >= '{start_str}'
+              AND created_at::date <= '{end_str}'
               AND status = 'executed'
               AND simplified_status = 'received'
             UNION ALL
@@ -70,8 +73,8 @@ def load_transfer_paths_stats(start_date,end_date):
             WHERE (data:call:chain='filecoin' OR data:call:returnValues:destinationChain='filecoin')
               AND status = 'executed'
               AND simplified_status = 'received'
-              AND created_at::date >= {start_date}
-              AND created_at::date <= {end_date}
+              AND created_at::date >= '{start_str}'
+              AND created_at::date <= '{end_str}'
         )
         SELECT source_chain || '➡' || destination_chain AS path,
                COUNT(DISTINCT user) AS user_count,
@@ -82,8 +85,9 @@ def load_transfer_paths_stats(start_date,end_date):
         FROM axelar_services
         GROUP BY 1
         ORDER BY 3 DESC
-    """.format(start_date=start_date, end_date=end_date)
+    """
     return pd.read_sql(query, conn)
+
 
 # --- Load Data ----------------------------------------------------------------------------------------
 transfer_paths_stats = load_transfer_paths_stats(start_date,end_date)
