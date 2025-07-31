@@ -125,7 +125,7 @@ def load_transfer_metrics_over_time(start_date, end_date, timeframe):
         )
         SELECT 
             DATE_TRUNC('{timeframe}', created_at) AS "Date", 
-            service, 
+            service as "Service", 
             COUNT(DISTINCT source_chain || '➡' || destination_chain) AS "Number of Path",
             COUNT(DISTINCT user) AS "User Count", 
             COUNT(DISTINCT id) AS "Transfer Count", 
@@ -182,7 +182,7 @@ with col1:
         fig1 = go.Figure()
 
         for service, color in zip(["GMP", "Token Transfers"], ["#ff8700", "#008afa"]):
-            df_filtered = transfer_metrics_df[transfer_metrics_df["service"] == service]
+            df_filtered = transfer_metrics_df[transfer_metrics_df["Service"] == service]
             fig1.add_bar(
                 x=df_filtered["Date"],
                 y=df_filtered["Transfer Volume"],
@@ -217,7 +217,7 @@ with col2:
         fig2 = go.Figure()
 
         for service, color in zip(["GMP", "Token Transfers"], ["#ff8700", "#008afa"]):
-            df_filtered = transfer_metrics_df[transfer_metrics_df["service"] == service]
+            df_filtered = transfer_metrics_df[transfer_metrics_df["Service"] == service]
             fig2.add_bar(
                 x=df_filtered["Date"],
                 y=df_filtered["Transfer Count"],
@@ -255,7 +255,7 @@ with col3:
         fig3 = go.Figure()
 
         for service, color in zip(["GMP", "Token Transfers"], ["#ff8700", "#008afa"]):
-            df_filtered = transfer_metrics_df[transfer_metrics_df["service"] == service]
+            df_filtered = transfer_metrics_df[transfer_metrics_df["Service"] == service]
             fig3.add_bar(
                 x=df_filtered["Date"],
                 y=df_filtered["Transfer Fees"],
@@ -291,7 +291,7 @@ with col4:
             transfer_metrics_df,
             x="Date",
             y="User Count",
-            color="service",
+            color="Service",
             color_discrete_map={
                 "GMP": "#ff8700",
                 "Token Transfers": "#008afa"
