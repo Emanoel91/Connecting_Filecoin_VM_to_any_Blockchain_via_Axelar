@@ -89,13 +89,97 @@ def load_transfer_paths_table(start_date, end_date):
     """
     return pd.read_sql(query, conn)
 
-# --- Row 2 --------------------
+# --- Row 2: Top 10 Paths by Volume and Count (Side-by-Side Charts) ----------------------------------
+@st.cache_data
+def load_top_paths_by_volume(start_date, end_date):
+    query = f"""
+        WITH axelar_services AS (
+            SELECT created_at,
+                   LOWER(data:send:original_source_chain) AS source_chain,
+                   LOWER(data:send:original_destination_chain) AS destination_chain,
+                   sender_address AS user,
+                   data:send:amount * data:link:price AS amount,
+                   data:send:fee_value AS fee,
+                   id
+            FROM axelar.axelscan.fact_transfers
+            WHERE (data:send:original_source_chain = 'filecoin' OR data:send:original_destination_chain = 'filecoin')
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+              AND status = 'executed' AND simplified_status = 'received'
 
+            UNION ALL
+
+            SELECT created_at,
+                   LOWER(data:call:chain) AS source_chain,
+                   LOWER(data:call:returnValues:destinationChain) AS destination_chain,
+                   data:call:transaction:from AS user,
+                   data:value AS amount,
+                   COALESCE(
+                       (data:gas:gas_used_amount) * (data:gas_price_rate:source_token.token_price.usd),
+                       TRY_CAST(data:fees:express_fee_usd::float AS FLOAT)
+                   ) AS fee,
+                   id
+            FROM axelar.axelscan.fact_gmp
+            WHERE (data:call:chain = 'filecoin' OR data:call:returnValues:destinationChain = 'filecoin')
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+              AND status = 'executed' AND simplified_status = 'received'
+        )
+        SELECT source_chain || '➡' || destination_chain AS path,
+               ROUND(SUM(amount)) AS transfer_volume
+        FROM axelar_services
+        WHERE source_chain <> 'axelar'
+        GROUP BY 1
+        ORDER BY 2 DESC
+        LIMIT 10
+    """
+    return pd.read_sql(query, conn)
+
+@st.cache_data
+def load_top_paths_by_count(start_date, end_date):
+    query = f"""
+        WITH axelar_services AS (
+            SELECT created_at,
+                   LOWER(data:send:original_source_chain) AS source_chain,
+                   LOWER(data:send:original_destination_chain) AS destination_chain,
+                   sender_address AS user,
+                   data:send:amount * data:link:price AS amount,
+                   data:send:fee_value AS fee,
+                   id
+            FROM axelar.axelscan.fact_transfers
+            WHERE (data:send:original_source_chain = 'filecoin' OR data:send:original_destination_chain = 'filecoin')
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+              AND status = 'executed' AND simplified_status = 'received'
+
+            UNION ALL
+
+            SELECT created_at,
+                   LOWER(data:call:chain) AS source_chain,
+                   LOWER(data:call:returnValues:destinationChain) AS destination_chain,
+                   data:call:transaction:from AS user,
+                   data:value AS amount,
+                   COALESCE(
+                       (data:gas:gas_used_amount) * (data:gas_price_rate:source_token.token_price.usd),
+                       TRY_CAST(data:fees:express_fee_usd::float AS FLOAT)
+                   ) AS fee,
+                   id
+            FROM axelar.axelscan.fact_gmp
+            WHERE (data:call:chain = 'filecoin' OR data:call:returnValues:destinationChain = 'filecoin')
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+              AND status = 'executed' AND simplified_status = 'received'
+        )
+        SELECT source_chain || '➡' || destination_chain AS path,
+               COUNT(DISTINCT id) AS transfer_count
+        FROM axelar_services
+        GROUP BY 1
+        ORDER BY 2 DESC
+        LIMIT 10
+    """
+    return pd.read_sql(query, conn)
 
 
 # --- Load Data ----------------------------------------------------------------------------------------
 path_table_df = load_transfer_paths_table(start_date, end_date)
-
+volume_df = load_top_paths_by_volume(start_date, end_date)
+count_df = load_top_paths_by_count(start_date, end_date)
 # ------------------------------------------------------------------------------------------------------
 # --- Row1: Render Table with Index Starting from 1 -----------------------------------
 st.markdown("### 🔎Tracking of the Cross-Chain Paths (Sorted by transfers count)")
@@ -107,4 +191,43 @@ else:
     st.warning("No cross-chain path data available for the selected period.")
 
 # --- Row2 --------------------------------------
+# --- Draw Charts in One Row
+col1, col2 = st.columns(2)
 
+with col1:
+    st.markdown("### 💰 Top Paths By Transfer Volume")
+    if not volume_df.empty:
+        fig_vol = px.bar(
+            volume_df.sort_values("transfer_volume", ascending=True),
+            x="transfer_volume",
+            y="path",
+            orientation="h",
+            color="transfer_volume",
+            color_continuous_scale="blues",
+            labels={"transfer_volume": "Volume ($USD)", "path": "Path"},
+            text="transfer_volume"
+        )
+        fig_vol.update_traces(texttemplate='%{text:,.0f}', textposition='outside')
+        fig_vol.update_layout(xaxis_title="Transfer Volume ($USD)", yaxis_title="")
+        st.plotly_chart(fig_vol, use_container_width=True)
+    else:
+        st.warning("No volume data available for the selected period.")
+
+with col2:
+    st.markdown("### 🚀 Top Paths By Transfer Count")
+    if not count_df.empty:
+        fig_cnt = px.bar(
+            count_df.sort_values("transfer_count", ascending=True),
+            x="transfer_count",
+            y="path",
+            orientation="h",
+            color="transfer_count",
+            color_continuous_scale="greens",
+            labels={"transfer_count": "Transfer Count", "path": "Path"},
+            text="transfer_count"
+        )
+        fig_cnt.update_traces(texttemplate='%{text:,}', textposition='outside')
+        fig_cnt.update_layout(xaxis_title="Transfer Count", yaxis_title="")
+        st.plotly_chart(fig_cnt, use_container_width=True)
+    else:
+        st.warning("No count data available for the selected period.")
