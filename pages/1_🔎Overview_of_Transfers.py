@@ -198,6 +198,14 @@ transfer_metrics_df = load_transfer_metrics_over_time(start_date, end_date, time
 transfer_summary_df = load_transfer_summary_by_service(start_date, end_date)
 # ------------------------------------------------------------------------------------------------------
 # --- Row 1: KPI Metrics (Volume, Count, Users) -----------------------------------------------------------------------
+st.markdown(
+    """
+    <div style="background-color:#0090ff; padding:1px; border-radius:10px;">
+        <h2 style="color:#000000; text-align:center;">📋Overview</h2>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 if not transfer_kpis.empty:
     volume = int(transfer_kpis["Transfer Volume"].iloc[0])
     txns = int(transfer_kpis["Transfer Count"].iloc[0])
@@ -452,7 +460,7 @@ with col4:
         )
         fig4.update_layout(
             title="Average Transfer Fees By Service",
-            yaxis_title="Average Fee (USD)",
+            yaxis_title="$USD",
             height=500,
             xaxis_title="Service",
         )
