@@ -350,72 +350,48 @@ else:
     st.info("No whale transactions found for the selected time period.")
 
 # --- Row 3 ----------------------------------
-fig_volume = go.Figure()
+def plot_clustered_bar(data, title):
+    fig = go.Figure()
 
-fig_volume.add_trace(go.Bar(
-    y=top_users_volume["User"],
-    x=top_users_volume["Volume of Transfers"],
-    name="Volume of Transfers",
-    orientation='h',
-    marker_color='royalblue',
-    yaxis='y1',
-))
+    
+    data_sorted = data.sort_values("Volume of Transfers", ascending=True)
 
-fig_volume.add_trace(go.Bar(
-    y=top_users_volume["User"], 
-    x=top_users_volume["Number of Transfers"],
-    name="Number of Transfers",
-    orientation='h',
-    marker_color='orange',
-    yaxis='y2',
-))
+    fig.add_trace(go.Bar(
+        y=data_sorted["User"],
+        x=data_sorted["Volume of Transfers"],
+        name="Volume of Transfers",
+        orientation='h',
+        marker_color='royalblue',
+        yaxis='y1',
+    ))
 
-fig_volume.update_layout(
-    title="🏆Top Users By Transfer Volume",
-    xaxis=dict(title="Volume of Transfers", showgrid=False),
-    yaxis=dict(title="", autorange='reversed'),
-    yaxis2=dict(title="Number of Transfers", overlaying='y', side='right'),
-    barmode='group',
-    height=400,
-    margin=dict(l=70, r=70, t=50, b=50),
-)
+    fig.add_trace(go.Bar(
+        y=data_sorted["User"],
+        x=data_sorted["Number of Transfers"],
+        name="Number of Transfers",
+        orientation='h',
+        marker_color='orange',
+        yaxis='y2',
+    ))
 
-fig_count = go.Figure()
+    fig.update_layout(
+        title=title,
+        xaxis=dict(title="Volume of Transfers", showgrid=False),
+        yaxis=dict(title="", autorange='reversed'),
+        yaxis2=dict(title="Number of Transfers", overlaying='y', side='right'),
+        barmode='group',
+        height=400,
+        margin=dict(l=70, r=70, t=50, b=50),
+    )
+    return fig
 
-fig_count.add_trace(go.Bar(
-    y=top_users_count["User"],
-    x=top_users_count["Volume of Transfers"],
-    name="Volume of Transfers",
-    orientation='h',
-    marker_color='royalblue',
-    yaxis='y1',
-))
-
-fig_count.add_trace(go.Bar(
-    y=top_users_count["User"],
-    x=top_users_count["Number of Transfers"],
-    name="Number of Transfers",
-    orientation='h',
-    marker_color='orange',
-    yaxis='y2',
-))
-
-fig_count.update_layout(
-    title="🏆Top Users By Transfer Count",
-    xaxis=dict(title="Volume of Transfers", showgrid=False),
-    yaxis=dict(title="", autorange='reversed'),
-    yaxis2=dict(title="Number of Transfers", overlaying='y', side='right'),
-    barmode='group',
-    height=400,
-    margin=dict(l=70, r=70, t=50, b=50),
-)
+fig_volume = plot_clustered_bar(top_users_volume, "🏆Top Users By Transfer Volume")
+fig_count = plot_clustered_bar(top_users_count, "🏆Top Users By Transfer Count")
 
 # --- Display side by side ---
-st.markdown(
-    """
-    <div style="display: flex; gap: 20px;">
-        <div style="flex: 1;">"""
-)
-st.plotly_chart(fig_volume, use_container_width=True)
-st.plotly_chart(fig_count, use_container_width=True)
+col1, col2 = st.columns(2)
+with col1:
+    st.plotly_chart(fig_volume, use_container_width=True)
+with col2:
+    st.plotly_chart(fig_count, use_container_width=True)
 
