@@ -262,7 +262,7 @@ with col3:
             title="",
             hole=0.4
         )
-        fig_usr_pie.update_layout(legend=dict(orientation="v", x=-0.2, y=0.5))
+        fig_usr_pie.update_layout(legend=dict(orientation="v", x=1.1, y=0.5))
         st.plotly_chart(fig_usr_pie, use_container_width=True)
     else:
         st.warning("No user data available.")
