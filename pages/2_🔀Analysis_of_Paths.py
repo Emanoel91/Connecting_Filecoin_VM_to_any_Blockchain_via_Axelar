@@ -124,7 +124,7 @@ def load_top_paths_by_volume(start_date, end_date):
               AND status = 'executed' AND simplified_status = 'received'
         )
         SELECT source_chain || '➡' || destination_chain AS path,
-               ROUND(SUM(amount)) AS "Transfer Volume ($USD)"
+               ROUND(SUM(amount)) AS "Transfer Volume"
         FROM axelar_services
         WHERE source_chain <> 'axelar'
         GROUP BY 1
@@ -198,17 +198,17 @@ with col1:
     st.markdown("### 💰 Top Paths By Transfer Volume")
     if not volume_df.empty:
         fig_vol = px.bar(
-            volume_df.sort_values("Transfer Volume ($USD)", ascending=True),
-            x="Transfer Volume ($USD)",
+            volume_df.sort_values("Transfer Volume", ascending=True),
+            x="Transfer Volume",
             y="path",
             orientation="h",
-            color="Transfer Volume ($USD)",
+            color="Transfer Volume",
             color_continuous_scale="blues",
-            labels={"Transfer Volume ($USD)": "Transfer Volume ($USD)", "path": "Path"},
-            text="Transfer Volume ($USD)"
+            labels={"Transfer Volume": "Transfer Volume", "path": "Path"},
+            text="Transfer Volume"
         )
         fig_vol.update_traces(texttemplate='%{text:,.0f}', textposition='outside')
-        fig_vol.update_layout(xaxis_title="Transfer Volume ($USD)", yaxis_title="")
+        fig_vol.update_layout(xaxis_title="Transfer Volume", yaxis_title="")
         st.plotly_chart(fig_vol, use_container_width=True)
     else:
         st.warning("No volume data available for the selected period.")
