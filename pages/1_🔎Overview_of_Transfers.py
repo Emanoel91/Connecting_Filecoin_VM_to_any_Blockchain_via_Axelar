@@ -545,7 +545,7 @@ direction_colors = {
     "⛓➡filecoin": "#0090ff"
 }
 
-# --- Row 1: Donut - Volume + Bar Clustered (Transfers & Users) ------------------------------------------------------
+# --- Row 7: Donut - Volume + Bar Clustered (Transfers & Users) ------------------------------------------------------
 col1, col2 = st.columns(2)
 
 with col1:
@@ -578,13 +578,13 @@ with col2:
                 x=directional_df["Direction"],
                 y=directional_df["Transfer Count"],
                 name="Transfer Count",
-                marker_color=[direction_colors[d] for d in directional_df["Direction"]]
+                # -- marker_color=[direction_colors[d] for d in directional_df["Direction"]]
             ),
             go.Bar(
                 x=directional_df["Direction"],
                 y=directional_df["User Count"],
                 name="User Count",
-                marker_color=[direction_colors[d] for d in directional_df["Direction"]]
+                # -- marker_color=[direction_colors[d] for d in directional_df["Direction"]]
             )
         ])
         fig2.update_layout(
@@ -598,7 +598,7 @@ with col2:
     else:
         st.warning("No data for transfer/user count by direction.")
 
-# --- Row 2: Donut - Fees + Bar - Avg Fee ---------------------------------------------------------------------------
+# --- Row 8: Donut - Fees + Bar - Avg Fee ---------------------------------------------------------------------------
 col3, col4 = st.columns(2)
 
 with col3:
