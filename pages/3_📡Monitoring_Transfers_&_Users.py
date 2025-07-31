@@ -362,7 +362,7 @@ fig_volume.add_trace(go.Bar(
 ))
 
 fig_volume.add_trace(go.Bar(
-    y=top_users_volume["User"],
+    y=top_users_volume["User"], 
     x=top_users_volume["Number of Transfers"],
     name="Number of Transfers",
     orientation='h',
