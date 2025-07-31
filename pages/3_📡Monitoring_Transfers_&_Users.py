@@ -38,9 +38,70 @@ start_date = st.date_input("Start Date", value=pd.to_datetime("2024-01-01"))
 end_date = st.date_input("End Date", value=pd.to_datetime("2025-07-31"))
 
 # --- Query Functions ---------------------------------------------------------------------------------------
+# --- Row 1: Table of Last 1000 Transfers -------------------------------------------------------
 
+@st.cache_data
+def load_recent_transfers(start_date, end_date):
+    query = f"""
+        WITH axelar_services AS (
+            SELECT created_at,
+                   LOWER(data:send:original_source_chain) AS source_chain,
+                   LOWER(data:send:original_destination_chain) AS destination_chain,
+                   sender_address AS user,
+                   data:send:amount * data:link:price AS amount,
+                   data:send:fee_value AS fee,
+                   id,
+                   'Token Transfers' AS service,
+                   data:link:asset AS asset
+            FROM axelar.axelscan.fact_transfers
+            WHERE (data:send:original_source_chain = 'filecoin' OR data:send:original_destination_chain = 'filecoin')
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+              AND status = 'executed'
+              AND simplified_status = 'received'
+
+            UNION ALL
+
+            SELECT created_at,
+                   LOWER(data:call:chain) AS source_chain,
+                   LOWER(data:call:returnValues:destinationChain) AS destination_chain,
+                   data:call:transaction:from AS user,
+                   data:value AS amount,
+                   COALESCE(
+                       (data:gas:gas_used_amount) * (data:gas_price_rate:source_token.token_price.usd),
+                       TRY_CAST(data:fees:express_fee_usd::float AS FLOAT)
+                   ) AS fee,
+                   id,
+                   'GMP' AS service,
+                   data:approved:returnValues:symbol AS asset
+            FROM axelar.axelscan.fact_gmp
+            WHERE (data:call:chain = 'filecoin' OR data:call:returnValues:destinationChain = 'filecoin')
+              AND created_at::DATE BETWEEN '{start_date}' AND '{end_date}'
+              AND status = 'executed'
+              AND simplified_status = 'received'
+        )
+
+        SELECT created_at AS "⏰Date",
+               user AS "👥Asset Sender",
+               source_chain || '➡' || destination_chain AS "🔀Path",
+               CASE 
+                   WHEN amount IS NULL THEN 'No Volume'
+                   ELSE TO_VARCHAR(ROUND(amount, 1))
+               END AS "💰Amount ($USD)",
+               ROUND(fee, 5) AS "💸Transfer Fee ($USD)",
+               id AS "⛓ID"
+        FROM axelar_services
+        ORDER BY 1 DESC
+        LIMIT 1000
+    """
+    return pd.read_sql(query, conn)
 
 # --- Load Data ----------------------------------------------------------------------------------------
-
+recent_tx_df = load_recent_transfers(start_date, end_date)
 # ------------------------------------------------------------------------------------------------------
+st.markdown("### 🔎Tracking of Cross-Chain Transfers (Last 1000 Transactions in Default Time Range)")
 
+if not recent_tx_df.empty:
+    recent_tx_df.index = recent_tx_df.index + 1  # Start index from 1
+    st.dataframe(recent_tx_df, use_container_width=True, hide_index=False)
+else:
+    st.warning("No data found for the selected date range.")
