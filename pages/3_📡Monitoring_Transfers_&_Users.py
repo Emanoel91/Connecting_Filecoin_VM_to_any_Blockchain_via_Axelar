@@ -350,48 +350,42 @@ else:
     st.info("No whale transactions found for the selected time period.")
 
 # --- Row 3 ----------------------------------
-def plot_clustered_bar(data, title):
-    fig = go.Figure()
+top_5_users = top_users_volume.head(5)
 
-    
-    data_sorted = data.sort_values("Volume of Transfers", ascending=True)
+# --- Horizontal Bar Chart ---
+fig_horizontal = px.bar(
+    top_5_users.sort_values("Volume of Transfers"),  
+    x="Volume of Transfers"),
+    y="User",
+    orientation="h",
+    text="Volume of Transfers",
+    title="🏆Top Users By Transfer Volume"
+)
+fig_horizontal.update_traces(textposition="outside")
+fig_horizontal.update_layout(
+    xaxis_title="$USD",
+    yaxis_title="User",
+    height=500
+)
 
-    fig.add_trace(go.Bar(
-        y=data_sorted["User"],
-        x=data_sorted["Volume of Transfers"],
-        name="Volume of Transfers",
-        orientation='h',
-        marker_color='royalblue',
-        yaxis='y1',
-    ))
+top_5_users_ = top_users_count.head(5)
 
-    fig.add_trace(go.Bar(
-        y=data_sorted["User"],
-        x=data_sorted["Number of Transfers"],
-        name="Number of Transfers",
-        orientation='h',
-        marker_color='orange',
-        yaxis='y2',
-    ))
+# --- Horizontal Bar Chart ---
+fig_horizontal = px.bar(
+    top_5_users_.sort_values("Number of Transfers"),  
+    x="Number of Transfers"),
+    y="User",
+    orientation="h",
+    text="Number of Transfers",
+    title="🏆Top Users By Transfer Count"
+)
+fig_horizontal.update_traces(textposition="outside")
+fig_horizontal.update_layout(
+    xaxis_title="Txns count",
+    yaxis_title="User",
+    height=500
+)
 
-    fig.update_layout(
-        title=title,
-        xaxis=dict(title="Volume of Transfers", showgrid=False),
-        yaxis=dict(title="", autorange='reversed'),
-        yaxis2=dict(title="Number of Transfers", overlaying='y', side='right'),
-        barmode='group',
-        height=400,
-        margin=dict(l=70, r=70, t=50, b=50),
-    )
-    return fig
-
-fig_volume = plot_clustered_bar(top_users_volume, "🏆Top Users By Transfer Volume")
-fig_count = plot_clustered_bar(top_users_count, "🏆Top Users By Transfer Count")
-
-# --- Display side by side ---
 col1, col2 = st.columns(2)
-with col1:
-    st.plotly_chart(fig_volume, use_container_width=True)
-with col2:
-    st.plotly_chart(fig_count, use_container_width=True)
-
+col1.plotly_chart(fig_horizontal, use_container_width=True)
+col1.plotly_chart(fig_horizontal, use_container_width=True)
