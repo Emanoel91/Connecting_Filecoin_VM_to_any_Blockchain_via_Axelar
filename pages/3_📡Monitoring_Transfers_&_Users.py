@@ -353,39 +353,39 @@ else:
 top_5_users = top_users_volume.head(5)
 
 # --- Horizontal Bar Chart ---
-fig_horizontal = px.bar(
-    top_5_users.sort_values("Volume of Transfers"),  
-    x="Volume of Transfers"),
+fig_horizontal_volume = px.bar(
+    top_5_users.sort_values("Volume of Transfers"),
+    x="Volume of Transfers",
     y="User",
     orientation="h",
     text="Volume of Transfers",
     title="🏆Top Users By Transfer Volume"
 )
-fig_horizontal.update_traces(textposition="outside")
-fig_horizontal.update_layout(
+fig_horizontal_volume.update_traces(textposition="outside")
+fig_horizontal_volume.update_layout(
     xaxis_title="$USD",
     yaxis_title="User",
     height=500
 )
 
-top_5_users_ = top_users_count.head(5)
+top_5_users_count = top_users_count.head(5)
 
 # --- Horizontal Bar Chart ---
-fig_horizontal = px.bar(
-    top_5_users_.sort_values("Number of Transfers"),  
-    x="Number of Transfers"),
+fig_horizontal_count = px.bar(
+    top_5_users_count.sort_values("Number of Transfers"),
+    x="Number of Transfers",
     y="User",
     orientation="h",
     text="Number of Transfers",
     title="🏆Top Users By Transfer Count"
 )
-fig_horizontal.update_traces(textposition="outside")
-fig_horizontal.update_layout(
+fig_horizontal_count.update_traces(textposition="outside")
+fig_horizontal_count.update_layout(
     xaxis_title="Txns count",
     yaxis_title="User",
     height=500
 )
 
 col1, col2 = st.columns(2)
-col1.plotly_chart(fig_horizontal, use_container_width=True)
-col1.plotly_chart(fig_horizontal, use_container_width=True)
+col1.plotly_chart(fig_horizontal_volume, use_container_width=True)
+col2.plotly_chart(fig_horizontal_count, use_container_width=True)
