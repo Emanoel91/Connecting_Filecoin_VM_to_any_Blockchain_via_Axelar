@@ -307,8 +307,25 @@ top_users_volume = load_top_users_by_volume(start_date, end_date)
 top_users_count = load_top_users_by_count(start_date, end_date)
 
 # --- Show Tables ---
-st.markdown("### 📋 Recent Transfers")
+st.markdown(
+    """
+    <div style="background-color:#0090ff; padding:1px; border-radius:10px;">
+        <h2 style="color:#000000; text-align:center;">🖥Monitoring Transfers</h2>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+st.markdown("### 📋 Tracking of Cross-Chain Transfers (Last 1000 Txns in Default Time Range)")
 st.dataframe(recent_transfers)
+
+st.markdown(
+    """
+    <div style="background-color:#0090ff; padding:1px; border-radius:10px;">
+        <h2 style="color:#000000; text-align:center;">📊Analysis of Users</h2>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 st.markdown("### 🐳 Whale Transfers (> $100K)")
 st.dataframe(whale_transfers)
