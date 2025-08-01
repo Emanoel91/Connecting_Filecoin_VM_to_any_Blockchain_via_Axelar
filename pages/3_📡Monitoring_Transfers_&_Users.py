@@ -312,7 +312,10 @@ def load_top_users_by_count(start_date, end_date):
 recent_tx_df = load_recent_transfers(start_date, end_date)
 whale_df = load_whale_transfers(start_date, end_date)
 top_users_volume = load_top_users_by_volume(start_date, end_date)
+top_users_volume['User'] = top_users_volume['User'].astype(str)
+
 top_users_count = load_top_users_by_count(start_date, end_date)
+top_users_count['User'] = top_users_count['User'].astype(str)
 # ------------------------------------------------------------------------------------------------------
 # --- Row1 ---------------------------------------
 st.markdown(
