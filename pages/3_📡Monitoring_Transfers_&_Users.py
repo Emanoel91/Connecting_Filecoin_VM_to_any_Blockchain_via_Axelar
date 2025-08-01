@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import snowflake.connector
 import plotly.express as px
-import plotly.graph_objects as go
 
 # --- Page Config: Tab Title & Icon ---
 st.set_page_config(
@@ -15,7 +14,6 @@ st.title("📡Monitoring Transfers & Users")
 
 st.info(
     "📊Charts initially display data for a default time range. Select a custom range to view results for your desired period."
-
 )
 
 st.info(
@@ -37,9 +35,7 @@ timeframe = st.selectbox("Select Time Frame", ["month", "week", "day"])
 start_date = st.date_input("Start Date", value=pd.to_datetime("2024-01-01"))
 end_date = st.date_input("End Date", value=pd.to_datetime("2025-07-31"))
 
-# --- Query Functions ---------------------------------------------------------------------------------------
-# --- Row 1: Table of Last 1000 Transfers -------------------------------------------------------
-
+# --- Query Functions ---
 @st.cache_data
 def load_recent_transfers(start_date, end_date):
     query = f"""
@@ -94,8 +90,6 @@ def load_recent_transfers(start_date, end_date):
         LIMIT 1000
     """
     return pd.read_sql(query, conn)
-
-# --- Row 2: Whale Transfers Table ---------------------------------------------------------------------
 
 @st.cache_data
 def load_whale_transfers(start_date, end_date):
@@ -168,7 +162,6 @@ def load_whale_transfers(start_date, end_date):
     """
     return pd.read_sql(query, conn)
 
-# -- Row 3 ---------------------------------------------------
 @st.cache_data
 def load_top_users_by_volume(start_date, end_date):
     query = f"""
@@ -237,7 +230,6 @@ def load_top_users_by_volume(start_date, end_date):
     LIMIT 5
     """
     return pd.read_sql(query, conn)
-
 
 @st.cache_data
 def load_top_users_by_count(start_date, end_date):
@@ -308,58 +300,33 @@ def load_top_users_by_count(start_date, end_date):
     """
     return pd.read_sql(query, conn)
 
-# --- Load Data ----------------------------------------------------------------------------------------
-recent_tx_df = load_recent_transfers(start_date, end_date)
-whale_df = load_whale_transfers(start_date, end_date)
+# --- Load Data ---
+recent_transfers = load_recent_transfers(start_date, end_date)
+whale_transfers = load_whale_transfers(start_date, end_date)
 top_users_volume = load_top_users_by_volume(start_date, end_date)
-top_users_volume['User'] = top_users_volume['User'].astype(str)
-
 top_users_count = load_top_users_by_count(start_date, end_date)
-top_users_count['User'] = top_users_count['User'].astype(str)
-# ------------------------------------------------------------------------------------------------------
-# --- Row1 ---------------------------------------
-st.markdown(
-    """
-    <div style="background-color:#0090ff; padding:1px; border-radius:10px;">
-        <h2 style="color:#000000; text-align:center;">🖥️Monitoring Transfers</h2>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-st.markdown("### 🔎Tracking of Cross-Chain Transfers (Last 1000 Txns in Default Time Range)")
 
-if not recent_tx_df.empty:
-    recent_tx_df.index = recent_tx_df.index + 1  # Start index from 1
-    st.dataframe(recent_tx_df, use_container_width=True, hide_index=False)
-else:
-    st.warning("No data found for the selected date range.")
+# --- Show Tables ---
+st.markdown("### 📋 Recent Transfers")
+st.dataframe(recent_transfers)
 
-# --- Row2 -----------------------------------
-# --- Display Table
-st.markdown(
-    """
-    <div style="background-color:#0090ff; padding:1px; border-radius:10px;">
-        <h2 style="color:#000000; text-align:center;">📊Analysis of Users</h2>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-st.markdown("### 🐳Whales Activity")
+st.markdown("### 🐳 Whale Transfers (> $100K)")
+st.dataframe(whale_transfers)
 
-if not whale_df.empty:
-    whale_df.index = whale_df.index + 1  # Start index from 1
-    st.dataframe(whale_df, use_container_width=True, hide_index=False)
-else:
-    st.info("No whale transactions found for the selected time period.")
+# --- Process Top Users for Charts ---
+top_5_users_volume = top_users_volume.head(5).reset_index(drop=True)
+top_5_users_volume['User'] = top_5_users_volume['User'].astype(str)
+top_5_users_volume['User_short'] = top_5_users_volume['User'].apply(lambda x: x[:8] + "..." if len(x) > 10 else x)
 
-# --- Row 3 ----------------------------------
-top_5_users = top_users_volume.head(5)
+top_5_users_count = top_users_count.head(5).reset_index(drop=True)
+top_5_users_count['User'] = top_5_users_count['User'].astype(str)
+top_5_users_count['User_short'] = top_5_users_count['User'].apply(lambda x: x[:8] + "..." if len(x) > 10 else x)
 
-# --- Horizontal Bar Chart ---
+# --- Plots ---
 fig_horizontal_volume = px.bar(
-    top_5_users.sort_values("Volume of Transfers"),
+    top_5_users_volume.sort_values("Volume of Transfers"),
     x="Volume of Transfers",
-    y="User",
+    y="User_short",
     orientation="h",
     text="Volume of Transfers",
     title="🏆Top Users By Transfer Volume"
@@ -371,13 +338,10 @@ fig_horizontal_volume.update_layout(
     height=500
 )
 
-top_5_users_count = top_users_count.head(5)
-
-# --- Horizontal Bar Chart ---
 fig_horizontal_count = px.bar(
     top_5_users_count.sort_values("Number of Transfers"),
     x="Number of Transfers",
-    y="User",
+    y="User_short",
     orientation="h",
     text="Number of Transfers",
     title="🏆Top Users By Transfer Count"
@@ -389,6 +353,7 @@ fig_horizontal_count.update_layout(
     height=500
 )
 
+# --- Display Plots Side by Side ---
 col1, col2 = st.columns(2)
 col1.plotly_chart(fig_horizontal_volume, use_container_width=True)
 col2.plotly_chart(fig_horizontal_count, use_container_width=True)
