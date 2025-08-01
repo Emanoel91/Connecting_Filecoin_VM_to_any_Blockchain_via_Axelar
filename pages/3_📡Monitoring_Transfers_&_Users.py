@@ -310,7 +310,7 @@ top_users_count = load_top_users_by_count(start_date, end_date)
 st.markdown(
     """
     <div style="background-color:#0090ff; padding:1px; border-radius:10px;">
-        <h2 style="color:#000000; text-align:center;">🖥Monitoring Transfers</h2>
+        <h2 style="color:#000000; text-align:center;">🖥️Monitoring Transfers</h2>
     </div>
     """,
     unsafe_allow_html=True
